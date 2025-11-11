@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout 5 ping:*)",
+      "Bash(nul)",
+      "Bash(exit 0)",
+      "Bash(npm run test-notion:*)",
+      "Bash(curl:*)",
+      "Bash(timeout 8 ping:*)",
+      "Bash(npx tsx:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

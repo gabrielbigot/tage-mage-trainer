@@ -1,0 +1,278 @@
+{
+  "questions": [
+    {
+      "category": "Logique",
+      "question": "Quel est le PGCD de 96 et 40 ?",
+      "options": ["4", "8", "16", "20"],
+      "correctAnswer": 1,
+      "explanation": "On décompose : 96 = 2⁵ × 3 et 40 = 2³ × 5. Le PGCD est 2³ = 8",
+      "difficulty": "medium",
+      "tags": ["arithmétique", "pgcd"]
+    },
+    {
+      "category": "Logique",
+      "question": "Si 3x + 7 = 22, quelle est la valeur de x ?",
+      "options": ["3", "5", "7", "9"],
+      "correctAnswer": 1,
+      "explanation": "3x = 22 - 7 = 15, donc x = 15/3 = 5",
+      "difficulty": "easy",
+      "tags": ["algèbre", "équation"]
+    },
+    {
+      "category": "Logique",
+      "question": "Complétez la suite : 2, 6, 12, 20, 30, ?",
+      "options": ["40", "42", "44", "48"],
+      "correctAnswer": 1,
+      "explanation": "Différences : +4, +6, +8, +10, +12. La réponse est 30 + 12 = 42",
+      "difficulty": "medium",
+      "tags": ["suite", "logique"]
+    },
+    {
+      "category": "Logique",
+      "question": "Quel nombre continue la suite : 1, 1, 2, 3, 5, 8, ?",
+      "options": ["11", "12", "13", "14"],
+      "correctAnswer": 2,
+      "explanation": "Suite de Fibonacci : chaque terme est la somme des deux précédents. 5 + 8 = 13",
+      "difficulty": "easy",
+      "tags": ["fibonacci", "suite"],
+      "isFavorite": true
+    },
+    {
+      "category": "Calcul",
+      "question": "Un article coûte 80€. Après une réduction de 25%, quel est son nouveau prix ?",
+      "options": ["55€", "60€", "65€", "70€"],
+      "correctAnswer": 1,
+      "explanation": "Réduction : 80 × 0.25 = 20€. Prix final : 80 - 20 = 60€",
+      "difficulty": "easy",
+      "tags": ["pourcentage", "réduction"]
+    },
+    {
+      "category": "Calcul",
+      "question": "15 est quel pourcentage de 60 ?",
+      "options": ["20%", "25%", "30%", "35%"],
+      "correctAnswer": 1,
+      "explanation": "(15/60) × 100 = 25%",
+      "difficulty": "easy",
+      "tags": ["pourcentage"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Augmenter 50 de 20% puis diminuer le résultat de 20% donne :",
+      "options": ["48", "50", "52", "54"],
+      "correctAnswer": 0,
+      "explanation": "Après +20% : 50 × 1.2 = 60. Après -20% : 60 × 0.8 = 48",
+      "difficulty": "medium",
+      "tags": ["pourcentage", "variation"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Un article à 120€ TTC (TVA 20%). Quel est le prix HT ?",
+      "options": ["96€", "100€", "104€", "108€"],
+      "correctAnswer": 1,
+      "explanation": "Prix HT = 120 / 1.20 = 100€",
+      "difficulty": "medium",
+      "tags": ["tva", "pourcentage"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Combien vaut 3/4 + 2/3 ?",
+      "options": ["17/12", "5/7", "11/12", "13/12"],
+      "correctAnswer": 0,
+      "explanation": "3/4 + 2/3 = 9/12 + 8/12 = 17/12",
+      "difficulty": "medium",
+      "tags": ["fractions", "addition"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Un train roule à 120 km/h. Quelle distance parcourt-il en 45 minutes ?",
+      "options": ["60 km", "75 km", "90 km", "100 km"],
+      "correctAnswer": 2,
+      "explanation": "45 min = 0.75h. Distance = 120 × 0.75 = 90 km",
+      "difficulty": "medium",
+      "tags": ["vitesse", "distance"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Pierre marche à 4 km/h. Combien de temps met-il pour parcourir 6 km ?",
+      "options": ["1h", "1h15", "1h30", "1h45"],
+      "correctAnswer": 2,
+      "explanation": "Temps = Distance / Vitesse = 6 / 4 = 1.5h = 1h30",
+      "difficulty": "easy",
+      "tags": ["vitesse", "temps"]
+    },
+    {
+      "category": "Logique",
+      "question": "CHAT est à FÉLIN ce que CHIEN est à :",
+      "options": ["Animal", "Canidé", "Mammifère", "Domestique"],
+      "correctAnswer": 1,
+      "explanation": "Chat est une espèce de félin, chien est une espèce de canidé",
+      "difficulty": "easy",
+      "tags": ["analogie", "verbal"],
+      "isFavorite": true
+    },
+    {
+      "category": "Logique",
+      "question": "Quel mot ne va pas avec les autres : Pomme, Poire, Carotte, Banane",
+      "options": ["Pomme", "Poire", "Carotte", "Banane"],
+      "correctAnswer": 2,
+      "explanation": "Carotte est un légume, les autres sont des fruits",
+      "difficulty": "easy",
+      "tags": ["intrus", "catégorie"]
+    },
+    {
+      "category": "Logique",
+      "question": "Si tous les A sont B et tous les B sont C, alors :",
+      "options": ["Tous les C sont A", "Tous les A sont C", "Certains C sont A", "Aucune conclusion"],
+      "correctAnswer": 1,
+      "explanation": "Par transitivité : si A⊂B et B⊂C alors A⊂C",
+      "difficulty": "medium",
+      "tags": ["syllogisme", "logique"]
+    },
+    {
+      "category": "Conditions Minimales",
+      "question": "Pour qu'un nombre soit divisible par 6, il faut qu'il soit divisible par :",
+      "options": ["2 seulement", "3 seulement", "2 ET 3", "2 OU 3"],
+      "correctAnswer": 2,
+      "explanation": "Un nombre divisible par 6 = divisible par 2 ET par 3",
+      "difficulty": "medium",
+      "tags": ["divisibilité", "logique"]
+    },
+    {
+      "category": "Conditions Minimales",
+      "question": "Pour qu'une année soit bissextile, quelle condition MINIMALE suffit ?",
+      "options": ["Divisible par 4", "Divisible par 100", "Divisible par 400", "Année paire"],
+      "correctAnswer": 0,
+      "explanation": "Règle simplifiée : divisible par 4 (sauf exceptions des siècles)",
+      "difficulty": "medium",
+      "tags": ["année-bissextile", "condition"]
+    },
+    {
+      "category": "Expression",
+      "question": "Quel est le synonyme de \"perspicace\" ?",
+      "options": ["Persévérant", "Clairvoyant", "Persuasif", "Perspectif"],
+      "correctAnswer": 1,
+      "explanation": "Perspicace = qui a une intelligence vive, clairvoyant",
+      "difficulty": "easy",
+      "tags": ["vocabulaire", "synonyme"]
+    },
+    {
+      "category": "Expression",
+      "question": "Quel mot complète : \"Il a fait preuve de ... en restant calme\"",
+      "options": ["Sang-froid", "Sang-chaud", "Tête froide", "Cœur froid"],
+      "correctAnswer": 0,
+      "explanation": "Faire preuve de sang-froid = rester calme dans une situation difficile",
+      "difficulty": "easy",
+      "tags": ["expression", "vocabulaire"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Un réservoir se remplit en 6h par le robinet A et en 4h par le robinet B. Combien de temps pour le remplir avec les deux ?",
+      "options": ["2h", "2h24", "2h30", "3h"],
+      "correctAnswer": 1,
+      "explanation": "Débit A = 1/6 par heure, B = 1/4. Ensemble = 1/6 + 1/4 = 5/12 par heure. Temps = 12/5 = 2.4h = 2h24",
+      "difficulty": "hard",
+      "tags": ["débit", "travail-commun"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Trois ouvriers font un travail en 4 jours. Combien de temps pour 6 ouvriers ?",
+      "options": ["1 jour", "2 jours", "3 jours", "4 jours"],
+      "correctAnswer": 1,
+      "explanation": "Proportionnalité inverse : 3 × 4 = 6 × x, donc x = 2 jours",
+      "difficulty": "medium",
+      "tags": ["proportionnalité", "travail"]
+    },
+    {
+      "category": "Logique",
+      "question": "De combien de façons peut-on choisir 2 personnes parmi 5 ?",
+      "options": ["5", "10", "15", "20"],
+      "correctAnswer": 1,
+      "explanation": "Combinaisons C(5,2) = 5!/(2!×3!) = 10",
+      "difficulty": "medium",
+      "tags": ["combinatoire", "dénombrement"],
+      "isFavorite": true
+    },
+    {
+      "category": "Logique",
+      "question": "Combien de mots de 3 lettres peut-on former avec A, B, C (répétitions autorisées) ?",
+      "options": ["6", "9", "18", "27"],
+      "correctAnswer": 3,
+      "explanation": "Pour chaque position : 3 choix. Total = 3 × 3 × 3 = 27",
+      "difficulty": "medium",
+      "tags": ["arrangement", "dénombrement"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Quelle est la probabilité de tirer un as dans un jeu de 52 cartes ?",
+      "options": ["1/13", "1/52", "4/52", "1/4"],
+      "correctAnswer": 0,
+      "explanation": "Il y a 4 as dans 52 cartes : 4/52 = 1/13",
+      "difficulty": "easy",
+      "tags": ["probabilité", "cartes"]
+    },
+    {
+      "category": "Calcul",
+      "question": "En lançant deux dés, quelle est la probabilité d'obtenir une somme de 7 ?",
+      "options": ["1/6", "1/7", "1/12", "5/36"],
+      "correctAnswer": 0,
+      "explanation": "Cas favorables : (1,6), (2,5), (3,4), (4,3), (5,2), (6,1) = 6 cas sur 36. 6/36 = 1/6",
+      "difficulty": "medium",
+      "tags": ["probabilité", "dés"]
+    },
+    {
+      "category": "Logique",
+      "question": "Quelle est l'aire d'un rectangle de longueur 8 cm et largeur 5 cm ?",
+      "options": ["13 cm²", "26 cm²", "40 cm²", "80 cm²"],
+      "correctAnswer": 2,
+      "explanation": "Aire = longueur × largeur = 8 × 5 = 40 cm²",
+      "difficulty": "easy",
+      "tags": ["géométrie", "aire"]
+    },
+    {
+      "category": "Logique",
+      "question": "Le périmètre d'un carré de côté 6 cm est :",
+      "options": ["12 cm", "18 cm", "24 cm", "36 cm"],
+      "correctAnswer": 2,
+      "explanation": "Périmètre = 4 × côté = 4 × 6 = 24 cm",
+      "difficulty": "easy",
+      "tags": ["géométrie", "périmètre"]
+    },
+    {
+      "category": "Calcul",
+      "question": "La moyenne de 12, 15, 18, 21 est :",
+      "options": ["15", "16", "16.5", "17"],
+      "correctAnswer": 2,
+      "explanation": "Moyenne = (12 + 15 + 18 + 21) / 4 = 66 / 4 = 16.5",
+      "difficulty": "easy",
+      "tags": ["statistique", "moyenne"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Pierre a 12 et 16. Quelle note doit-il avoir au 3ème examen pour avoir 15 de moyenne ?",
+      "options": ["17", "18", "19", "20"],
+      "correctAnswer": 0,
+      "explanation": "(12 + 16 + x) / 3 = 15, donc 28 + x = 45, x = 17",
+      "difficulty": "medium",
+      "tags": ["moyenne", "équation"]
+    },
+    {
+      "category": "Logique",
+      "question": "Un escargot monte un mur de 10m. Le jour il monte 3m, la nuit il descend 2m. En combien de jours atteint-il le sommet ?",
+      "options": ["8 jours", "9 jours", "10 jours", "11 jours"],
+      "correctAnswer": 0,
+      "explanation": "Jour 1-7 : +1m/jour = 7m. Jour 8 : il monte de 3m et atteint 10m (il ne redescend pas)",
+      "difficulty": "hard",
+      "tags": ["logique", "problème"]
+    },
+    {
+      "category": "Calcul",
+      "question": "Un livre a 300 pages. Combien de fois le chiffre 1 apparaît-il dans la numérotation ?",
+      "options": ["160", "180", "200", "220"],
+      "correctAnswer": 0,
+      "explanation": "Unités: 1,11,21...291 = 30 fois. Dizaines: 10-19,110-119,210-219 = 30 fois. Centaines: 100-199 = 100 fois. Total = 160",
+      "difficulty": "hard",
+      "tags": ["dénombrement", "chiffre"]
+    }
+  ],
+  "exportedAt": "2025-01-13T10:00:00.000Z"
+}
