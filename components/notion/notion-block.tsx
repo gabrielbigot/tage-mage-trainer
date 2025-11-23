@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import { ChevronRight, ChevronDown, AlertCircle, Info, Lightbulb, AlertTriangle } from "lucide-react";
 
 /**
@@ -336,11 +337,16 @@ export function NotionBlock({ block, level = 0 }: { block: any; level?: number }
     return (
       <figure className="mb-4">
         {url && (
-          <img
-            src={url}
-            alt={caption || "Image"}
-            className="rounded-lg w-full"
-          />
+          <div className="relative w-full h-auto">
+            <Image
+              src={url}
+              alt={caption || "Image"}
+              width={800}
+              height={600}
+              className="rounded-lg w-full h-auto"
+              unoptimized
+            />
+          </div>
         )}
         {caption && (
           <figcaption className="text-sm text-gray-600 dark:text-gray-400 text-center mt-2">

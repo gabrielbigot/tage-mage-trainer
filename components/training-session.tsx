@@ -7,6 +7,8 @@ import { Question, QuestionResult, SessionMode } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 interface TrainingSessionProps {
   onExit: () => void;
@@ -209,236 +211,325 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
     const totalTime = Math.floor((Date.now() - sessionStartTime.current) / 1000);
 
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-6 w-6 text-green-600" />
-            Session terminée !
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="text-6xl font-bold text-primary">{percentage}%</div>
-            <p className="text-xl">
-              {score} / {questions.length} bonnes réponses
-            </p>
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Clock className="h-4 w-4" />
-              <span>Temps total : {formatTime(totalTime)}</span>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-4xl mx-auto"
+      >
+        <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3 text-3xl">
+              <CheckCircle2 className="h-8 w-8 text-green-500" />
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-green-500 to-emerald-700">
+                Session terminée !
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-8">
+            <div className="text-center space-y-4 py-8 bg-muted/30 rounded-2xl border border-white/5">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                className="text-8xl font-bold text-primary drop-shadow-lg"
+              >
+                {percentage}%
+              </motion.div>
+              <p className="text-2xl font-medium text-muted-foreground">
+                {score} / {questions.length} bonnes réponses
+              </p>
+              <div className="flex items-center justify-center gap-2 text-muted-foreground bg-background/50 w-fit mx-auto px-4 py-2 rounded-full border">
+                <Clock className="h-4 w-4" />
+                <span>Temps total : {formatTime(totalTime)}</span>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-3">
-            {questions.map((q, idx) => {
-              const userAnswer = answers[idx];
-              const isCorrect = userAnswer === q.correctAnswer;
+            <div className="space-y-4">
+              {questions.map((q, idx) => {
+                const userAnswer = answers[idx];
+                const isCorrect = userAnswer === q.correctAnswer;
 
-              return (
-                <Card key={q.id} className={isCorrect ? "border-green-500" : "border-red-500"}>
-                  <CardContent className="pt-6 space-y-2">
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        isCorrect
-                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                          : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                      }`}>
-                        {isCorrect ? "✓ Correct" : "✗ Incorrect"}
-                      </span>
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
-                        {q.category}
-                      </span>
-                      {questionTimes[idx] > 0 && (
-                        <span className="text-xs bg-muted px-2 py-1 rounded flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {formatTime(questionTimes[idx])}
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-medium">{q.question}</p>
-                    {q.imageUrl && (
-                      <div className="my-2">
-                        <img
-                          src={q.imageUrl}
-                          alt="Question"
-                          className="w-full max-h-48 object-contain border rounded-lg bg-muted"
-                        />
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      {q.options.map((opt, optIdx) => (
-                        <div
-                          key={optIdx}
-                          className={`text-sm px-3 py-1 rounded ${
-                            optIdx === q.correctAnswer
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
-                              : optIdx === userAnswer
-                              ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100"
-                              : "bg-muted"
-                          }`}
-                        >
-                          {optIdx === q.correctAnswer && "✓ "}
-                          {optIdx === userAnswer && optIdx !== q.correctAnswer && "✗ "}
-                          {opt}
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.1 }}
+                    key={q.id}
+                  >
+                    <Card className={cn(
+                      "transition-all duration-300 hover:shadow-lg border-l-4",
+                      isCorrect ? "border-l-green-500" : "border-l-red-500"
+                    )}>
+                      <CardContent className="pt-6 space-y-3">
+                        <div className="flex items-center gap-3 mb-2 flex-wrap">
+                          <span className={cn(
+                            "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1",
+                            isCorrect
+                              ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                              : "bg-red-500/10 text-red-600 dark:text-red-400"
+                          )}>
+                            {isCorrect ? "✓ Correct" : "✗ Incorrect"}
+                          </span>
+                          <span className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full font-medium">
+                            {q.category}
+                          </span>
+                          {questionTimes[idx] > 0 && (
+                            <span className="text-xs bg-muted px-3 py-1 rounded-full flex items-center gap-1 font-mono">
+                              <Clock className="h-3 w-3" />
+                              {formatTime(questionTimes[idx])}
+                            </span>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                    {q.explanation && (
-                      <p className="text-sm text-muted-foreground italic mt-2">
-                        {q.explanation}
-                      </p>
-                    )}
-                    <div className="mt-3 pt-3 border-t">
-                      <Link href={`/correction/${q.id}`} target="_blank">
-                        <Button variant="outline" size="sm" className="w-full">
-                          <BookOpen className="h-4 w-4 mr-2" />
-                          Voir la correction détaillée
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                        <p className="font-medium text-lg leading-relaxed">{q.question}</p>
+                        {q.imageUrl && (
+                          <div className="my-4 rounded-xl overflow-hidden border bg-muted/50">
+                            <img
+                              src={q.imageUrl}
+                              alt="Question"
+                              className="w-full max-h-64 object-contain"
+                            />
+                          </div>
+                        )}
+                        <div className="space-y-2">
+                          {q.options.map((opt, optIdx) => (
+                            <div
+                              key={optIdx}
+                              className={cn(
+                                "text-sm px-4 py-3 rounded-lg flex items-center gap-3 transition-colors",
+                                optIdx === q.correctAnswer
+                                  ? "bg-green-500/10 text-green-700 dark:text-green-300 border border-green-500/20"
+                                  : optIdx === userAnswer
+                                    ? "bg-red-500/10 text-red-700 dark:text-red-300 border border-red-500/20"
+                                    : "bg-muted/50"
+                              )}
+                            >
+                              {optIdx === q.correctAnswer && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                              {optIdx === userAnswer && optIdx !== q.correctAnswer && <span className="text-red-500 font-bold">✗</span>}
+                              {opt}
+                            </div>
+                          ))}
+                        </div>
+                        {q.explanation && (
+                          <div className="bg-blue-500/5 p-4 rounded-lg border border-blue-500/10 mt-4">
+                            <p className="text-sm text-muted-foreground italic">
+                              <span className="font-semibold text-primary not-italic block mb-1">Explication :</span>
+                              {q.explanation}
+                            </p>
+                          </div>
+                        )}
+                        <div className="mt-4 pt-4 border-t border-border/50">
+                          <Link href={`/correction/${q.id}`} target="_blank">
+                            <Button variant="ghost" size="sm" className="w-full hover:bg-primary/5">
+                              <BookOpen className="h-4 w-4 mr-2" />
+                              Voir la correction détaillée
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
+            </div>
 
-          <div className="flex gap-2">
-            <Button onClick={onExit} variant="outline" className="flex-1">
-              Retour à l&apos;accueil
-            </Button>
-            <Button
-              onClick={() => {
-                window.location.reload();
-              }}
-              className="flex-1"
-            >
-              Nouvelle session
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="flex gap-4 pt-6">
+              <Button onClick={onExit} variant="outline" size="lg" className="flex-1">
+                Retour à l&apos;accueil
+              </Button>
+              <Button
+                onClick={() => window.location.reload()}
+                size="lg"
+                className="flex-1 shadow-lg shadow-primary/20"
+              >
+                Nouvelle session
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
   const currentQuestion = questions[currentIndex];
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>
-            Question {currentIndex + 1} / {questions.length}
-          </CardTitle>
-          <div className="flex items-center gap-4">
-            {timePerQuestion > 0 && (
-              <div className={`flex items-center gap-2 px-3 py-1 rounded-lg font-mono text-lg font-bold ${
-                timeRemaining <= 10
-                  ? "bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-100 animate-pulse"
-                  : timeRemaining <= 30
-                  ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-100"
-                  : "bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-100"
-              }`}>
-                <Clock className="h-5 w-5" />
-                <span>
-                  {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
-                </span>
+    <div className="max-w-3xl mx-auto">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentIndex}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Card className="border-none shadow-2xl bg-card/80 backdrop-blur-xl overflow-hidden">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between mb-4">
+                <div className="space-y-1">
+                  <CardTitle className="text-2xl">
+                    Question {currentIndex + 1} <span className="text-muted-foreground text-lg font-normal">/ {questions.length}</span>
+                  </CardTitle>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+                    {currentQuestion.category}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4">
+                  {timePerQuestion > 0 && (
+                    <div className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-xl font-mono text-lg font-bold transition-colors shadow-inner",
+                      timeRemaining <= 10
+                        ? "bg-red-500/10 text-red-600 animate-pulse"
+                        : timeRemaining <= 30
+                          ? "bg-yellow-500/10 text-yellow-600"
+                          : "bg-green-500/10 text-green-600"
+                    )}>
+                      <Clock className="h-5 w-5" />
+                      <span>
+                        {Math.floor(timeRemaining / 60)}:{(timeRemaining % 60).toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            <span className="text-sm text-muted-foreground">{currentQuestion.category}</span>
-          </div>
-        </div>
-        <div className="w-full bg-muted rounded-full h-2 mt-2">
-          <div
-            className="bg-primary h-2 rounded-full transition-all"
-            style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-4">
-          <p className="text-lg font-medium">{currentQuestion.question}</p>
+              <div className="w-full bg-muted/50 rounded-full h-2 overflow-hidden">
+                <motion.div
+                  className="bg-primary h-full rounded-full"
+                  initial={{ width: `${(currentIndex / questions.length) * 100}%` }}
+                  animate={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-8 pt-6">
+              <div className="space-y-6">
+                <p className="text-xl font-medium leading-relaxed">{currentQuestion.question}</p>
 
-          {currentQuestion.imageUrl && (
-            <div className="my-4">
-              <img
-                src={currentQuestion.imageUrl}
-                alt="Question"
-                className="w-full max-h-96 object-contain border rounded-lg bg-muted"
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            {currentQuestion.options.map((option, index) => {
-              const isSelected = selectedAnswer === index;
-              const isCorrect = index === currentQuestion.correctAnswer;
-              const showCorrect = showAnswer && isCorrect;
-              const showIncorrect = showAnswer && isSelected && !isCorrect;
-
-              return (
-                <button
-                  key={index}
-                  onClick={() => handleAnswerSelect(index)}
-                  disabled={showAnswer}
-                  className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all ${
-                    showCorrect
-                      ? "border-green-500 bg-green-50 dark:bg-green-950"
-                      : showIncorrect
-                      ? "border-red-500 bg-red-50 dark:bg-red-950"
-                      : isSelected
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/50"
-                  } ${showAnswer ? "cursor-default" : "cursor-pointer"}`}
-                >
-                  <div className="flex items-center gap-2">
-                    {showCorrect && <span className="text-green-600">✓</span>}
-                    {showIncorrect && <span className="text-red-600">✗</span>}
-                    <span>{option}</span>
+                {currentQuestion.imageUrl && (
+                  <div className="rounded-xl overflow-hidden border bg-muted/30 shadow-inner">
+                    <img
+                      src={currentQuestion.imageUrl}
+                      alt="Question"
+                      className="w-full max-h-96 object-contain"
+                    />
                   </div>
-                </button>
-              );
-            })}
-          </div>
+                )}
 
-          {showAnswer && currentQuestion.explanation && (
-            <div className="bg-muted p-4 rounded-lg">
-              <p className="text-sm font-medium mb-1">Explication :</p>
-              <p className="text-sm text-muted-foreground">{currentQuestion.explanation}</p>
-            </div>
-          )}
-        </div>
+                <div className="grid gap-3">
+                  {currentQuestion.options.map((option, index) => {
+                    const isSelected = selectedAnswer === index;
+                    const isCorrect = index === currentQuestion.correctAnswer;
+                    const showCorrect = showAnswer && isCorrect;
+                    const showIncorrect = showAnswer && isSelected && !isCorrect;
 
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={handlePrevious}
-            disabled={currentIndex === 0}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Précédent
-          </Button>
+                    return (
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        key={index}
+                        onClick={() => handleAnswerSelect(index)}
+                        disabled={showAnswer}
+                        className={cn(
+                          "w-full text-left px-6 py-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-4 group relative overflow-hidden",
+                          showCorrect
+                            ? "border-green-500 bg-green-500/5"
+                            : showIncorrect
+                              ? "border-red-500 bg-red-500/5"
+                              : isSelected
+                                ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                                : "border-border hover:border-primary/50 hover:bg-muted/50"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-8 h-8 rounded-full flex items-center justify-center border-2 text-sm font-bold transition-colors shrink-0",
+                          showCorrect
+                            ? "border-green-500 bg-green-500 text-white"
+                            : showIncorrect
+                              ? "border-red-500 bg-red-500 text-white"
+                              : isSelected
+                                ? "border-primary bg-primary text-white"
+                                : "border-muted-foreground/30 text-muted-foreground group-hover:border-primary/50 group-hover:text-primary"
+                        )}>
+                          {String.fromCharCode(65 + index)}
+                        </div>
+                        <span className="font-medium text-lg">{option}</span>
 
-          <div className="flex-1" />
+                        {(showCorrect || showIncorrect) && (
+                          <div className="ml-auto">
+                            {showCorrect ? (
+                              <CheckCircle2 className="h-6 w-6 text-green-500" />
+                            ) : (
+                              <span className="text-red-500 font-bold text-xl">✗</span>
+                            )}
+                          </div>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
 
-          {!showAnswer ? (
-            <Button onClick={handleValidate}>Valider</Button>
-          ) : (
-            <Button onClick={handleNext}>
-              {currentIndex < questions.length - 1 ? (
-                <>
-                  Suivant
-                  <ArrowRight className="h-4 w-4 ml-2" />
-                </>
-              ) : (
-                "Voir les résultats"
-              )}
-            </Button>
-          )}
-        </div>
+                <AnimatePresence>
+                  {showAnswer && currentQuestion.explanation && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="bg-blue-500/5 p-6 rounded-xl border border-blue-500/10"
+                    >
+                      <p className="text-sm font-bold text-primary mb-2 uppercase tracking-wider">Explication</p>
+                      <p className="text-muted-foreground leading-relaxed">{currentQuestion.explanation}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-        <Button variant="ghost" onClick={onExit} className="w-full">
-          Quitter la session
-        </Button>
-      </CardContent>
-    </Card>
+              <div className="flex gap-4 pt-4 border-t border-border/50">
+                <Button
+                  variant="ghost"
+                  onClick={handlePrevious}
+                  disabled={currentIndex === 0}
+                  className="hover:bg-muted/50"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Précédent
+                </Button>
+
+                <div className="flex-1" />
+
+                {!showAnswer ? (
+                  <Button
+                    onClick={handleValidate}
+                    size="lg"
+                    className="px-8 shadow-lg shadow-primary/20"
+                  >
+                    Valider
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    size="lg"
+                    className="px-8 shadow-lg shadow-primary/20"
+                  >
+                    {currentIndex < questions.length - 1 ? (
+                      <>
+                        Suivant
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </>
+                    ) : (
+                      "Voir les résultats"
+                    )}
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex justify-center">
+                <Button variant="link" onClick={onExit} className="text-muted-foreground hover:text-destructive transition-colors">
+                  Quitter la session
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
