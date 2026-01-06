@@ -33,8 +33,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [doubleSeriesData, setDoubleSeriesData] = useState<DoubleSeriesData>({
-    horizontalSeries: ["", "", "", "", "?"],
-    verticalSeries: ["", "", "", "", "?"],
+    horizontalSeries: ["", "", "", "", ""],
+    verticalSeries: ["", "", "", "", ""],
     horizontalLabel: "",
     verticalLabel: "",
   });
@@ -219,8 +219,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setImageFile(null);
     setImagePreview("");
     setDoubleSeriesData({
-      horizontalSeries: ["", "", "", "", "?"],
-      verticalSeries: ["", "", "", "", "?"],
+      horizontalSeries: ["", "", "", "", ""],
+      verticalSeries: ["", "", "", "", ""],
       horizontalLabel: "",
       verticalLabel: "",
     });
@@ -245,8 +245,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setImageFile(null);
     setImagePreview("");
     setDoubleSeriesData({
-      horizontalSeries: ["", "", "", "", "?"],
-      verticalSeries: ["", "", "", "", "?"],
+      horizontalSeries: ["", "", "", "", ""],
+      verticalSeries: ["", "", "", "", ""],
       horizontalLabel: "",
       verticalLabel: "",
     });
