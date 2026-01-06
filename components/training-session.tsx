@@ -7,6 +7,7 @@ import { Question, QuestionResult, SessionMode } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { DoubleSeriesDisplay } from "@/components/double-series-display";
 
 interface TrainingSessionProps {
   onExit: () => void;
@@ -255,6 +256,11 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
                       )}
                     </div>
                     <p className="font-medium">{q.question}</p>
+                    {q.questionType === "double-series" && q.doubleSeriesData && (
+                      <div className="my-3">
+                        <DoubleSeriesDisplay data={q.doubleSeriesData} />
+                      </div>
+                    )}
                     {q.imageUrl && (
                       <div className="my-2">
                         <img
@@ -356,6 +362,10 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
       <CardContent className="space-y-6">
         <div className="space-y-4">
           <p className="text-lg font-medium">{currentQuestion.question}</p>
+
+          {currentQuestion.questionType === "double-series" && currentQuestion.doubleSeriesData && (
+            <DoubleSeriesDisplay data={currentQuestion.doubleSeriesData} />
+          )}
 
           {currentQuestion.imageUrl && (
             <div className="my-4">

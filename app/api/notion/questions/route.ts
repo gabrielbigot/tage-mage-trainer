@@ -26,6 +26,19 @@ async function notionPageToQuestion(page: any) {
   const favorisProp = properties.Favoris || properties.Favorite;
   const isFavorite = favorisProp?.checkbox || false;
 
+  const typeProp = properties.Type;
+  const questionType = typeProp?.select?.name || "standard";
+
+  const doubleSeriesProp = properties["Série Double"];
+  let doubleSeriesData = undefined;
+  if (doubleSeriesProp?.rich_text?.[0]?.plain_text) {
+    try {
+      doubleSeriesData = JSON.parse(doubleSeriesProp.rich_text[0].plain_text);
+    } catch (e) {
+      console.error("Error parsing double series data:", e);
+    }
+  }
+
   // Récupérer le contenu de la page
   const blocksResponse = await notion.blocks.children.list({
     block_id: page.id,
@@ -84,6 +97,8 @@ async function notionPageToQuestion(page: any) {
     difficulty,
     tags: tags.length > 0 ? tags : undefined,
     isFavorite,
+    questionType,
+    doubleSeriesData,
   };
 }
 
@@ -160,28 +175,44 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite } = body;
+    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite, questionType, doubleSeriesData } = body;
 
     // Créer la page avec les propriétés
+    const properties: any = {
+      Question: {
+        title: [{ text: { content: question } }],
+      },
+      Catégorie: {
+        select: { name: category },
+      },
+      Tags: {
+        multi_select: (tags || []).map((tag: string) => ({ name: tag })),
+      },
+      Difficulté: difficulty
+        ? { select: { name: difficulty } }
+        : { select: { name: "medium" } },
+      Favoris: {
+        checkbox: isFavorite || false,
+      },
+    };
+
+    // Add question type if provided
+    if (questionType) {
+      properties.Type = {
+        select: { name: questionType },
+      };
+    }
+
+    // Store double series data as JSON in a rich text property
+    if (questionType === "double-series" && doubleSeriesData) {
+      properties["Série Double"] = {
+        rich_text: [{ text: { content: JSON.stringify(doubleSeriesData) } }],
+      };
+    }
+
     const response = await notion.pages.create({
       parent: { database_id: NOTION_DATABASE_ID },
-      properties: {
-        Question: {
-          title: [{ text: { content: question } }],
-        },
-        Catégorie: {
-          select: { name: category },
-        },
-        Tags: {
-          multi_select: (tags || []).map((tag: string) => ({ name: tag })),
-        },
-        Difficulté: difficulty
-          ? { select: { name: difficulty } }
-          : { select: { name: "medium" } },
-        Favoris: {
-          checkbox: isFavorite || false,
-        },
-      } as any,
+      properties,
     });
 
     const pageId = response.id;

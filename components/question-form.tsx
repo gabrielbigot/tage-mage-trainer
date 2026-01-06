@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DifficultyLevel, Question } from "@/lib/types";
+import { DifficultyLevel, Question, QuestionType, DoubleSeriesData } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { Plus, X, Star, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
+import { DoubleSeriesInput } from "@/components/double-series-input";
 
 interface QuestionFormProps {
   onQuestionAdded?: () => void;
@@ -30,6 +31,17 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [questionType, setQuestionType] = useState<QuestionType>("standard");
+  const [doubleSeriesData, setDoubleSeriesData] = useState<DoubleSeriesData>({
+    top: "",
+    bottom: "",
+    left: "",
+    right: "",
+    center: "",
+    missingPosition: "center",
+    horizontalLogic: "",
+    verticalLogic: "",
+  });
 
   // Load question data when editing
   useEffect(() => {
@@ -44,6 +56,10 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
       setIsFavorite(editQuestion.isFavorite || false);
       setImageUrl(editQuestion.imageUrl || "");
       setImagePreview(editQuestion.imageUrl || "");
+      setQuestionType(editQuestion.questionType || "standard");
+      if (editQuestion.doubleSeriesData) {
+        setDoubleSeriesData(editQuestion.doubleSeriesData);
+      }
     }
   }, [editQuestion]);
 
@@ -114,14 +130,23 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const validOptions = options.filter(opt => opt.trim() !== "");
-    if (validOptions.length < 2) {
-      alert("Veuillez ajouter au moins 2 options");
+    if (!category.trim() || !question.trim()) {
+      alert("Veuillez remplir la catégorie et la question");
       return;
     }
 
-    if (!category.trim() || !question.trim()) {
-      alert("Veuillez remplir la catégorie et la question");
+    // Validation for double-series questions
+    if (questionType === "double-series") {
+      const { top, bottom, left, right, center } = doubleSeriesData;
+      if (!top.trim() || !bottom.trim() || !left.trim() || !right.trim() || !center.trim()) {
+        alert("Veuillez remplir toutes les positions de la croix");
+        return;
+      }
+    }
+
+    const validOptions = options.filter(opt => opt.trim() !== "");
+    if (validOptions.length < 2) {
+      alert("Veuillez ajouter au moins 2 options");
       return;
     }
 
@@ -164,6 +189,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           tags: tags.length > 0 ? tags : undefined,
           isFavorite,
           imageUrl: finalImageUrl || undefined,
+          questionType,
+          doubleSeriesData: questionType === "double-series" ? doubleSeriesData : undefined,
         });
       } else {
         // Add new question
@@ -177,6 +204,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           tags: tags.length > 0 ? tags : undefined,
           isFavorite,
           imageUrl: finalImageUrl || undefined,
+          questionType,
+          doubleSeriesData: questionType === "double-series" ? doubleSeriesData : undefined,
         });
       }
     } catch (error) {
@@ -201,6 +230,17 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setImageUrl("");
     setImageFile(null);
     setImagePreview("");
+    setQuestionType("standard");
+    setDoubleSeriesData({
+      top: "",
+      bottom: "",
+      left: "",
+      right: "",
+      center: "",
+      missingPosition: "center",
+      horizontalLogic: "",
+      verticalLogic: "",
+    });
 
     onQuestionAdded?.();
     onCancelEdit?.();
@@ -220,6 +260,17 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setImageUrl("");
     setImageFile(null);
     setImagePreview("");
+    setQuestionType("standard");
+    setDoubleSeriesData({
+      top: "",
+      bottom: "",
+      left: "",
+      right: "",
+      center: "",
+      missingPosition: "center",
+      horizontalLogic: "",
+      verticalLogic: "",
+    });
     onCancelEdit?.();
   };
 
@@ -258,6 +309,19 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="questionType">Type de question</Label>
+            <select
+              id="questionType"
+              value={questionType}
+              onChange={(e) => setQuestionType(e.target.value as QuestionType)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <option value="standard">Question standard (QCM)</option>
+              <option value="double-series">Série double alphanumérique (croix)</option>
+            </select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="question">Question</Label>
             <Textarea
               id="question"
@@ -268,6 +332,14 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
               required
             />
           </div>
+
+          {questionType === "double-series" && (
+            <DoubleSeriesInput
+              data={doubleSeriesData}
+              onChange={setDoubleSeriesData}
+              disabled={isUploading}
+            />
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="image">Image (optionnel)</Label>

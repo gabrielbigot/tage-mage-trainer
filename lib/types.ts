@@ -1,5 +1,18 @@
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type SessionMode = "practice" | "exam" | "review" | "flashcards";
+export type QuestionType = "standard" | "double-series";
+
+// Structure for double alphanumeric series (cross format)
+export interface DoubleSeriesData {
+  top: string;      // Top position (e.g., "B4")
+  bottom: string;   // Bottom position (e.g., "D16")
+  left: string;     // Left position (e.g., "A1")
+  right: string;    // Right position (e.g., "C9")
+  center: string;   // Center position (e.g., "B5" or "?")
+  missingPosition: "top" | "bottom" | "left" | "right" | "center"; // Which position to find
+  horizontalLogic?: string; // Optional: explanation of horizontal logic
+  verticalLogic?: string;   // Optional: explanation of vertical logic
+}
 
 export interface Question {
   id: string;
@@ -15,6 +28,9 @@ export interface Question {
   notes?: string;
   isFavorite?: boolean;
   imageUrl?: string;
+  // Question type and specific data
+  questionType?: QuestionType;
+  doubleSeriesData?: DoubleSeriesData; // Only for double-series questions
   // Statistics
   timesAnswered?: number;
   timesCorrect?: number;

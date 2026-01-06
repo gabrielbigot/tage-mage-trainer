@@ -13,7 +13,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite } = body;
+    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite, questionType, doubleSeriesData } = body;
 
     const properties: any = {};
 
@@ -44,6 +44,23 @@ export async function PATCH(
     if (isFavorite !== undefined) {
       properties.Favoris = {
         checkbox: isFavorite,
+      };
+    }
+
+    if (questionType !== undefined) {
+      properties.Type = {
+        select: { name: questionType },
+      };
+    }
+
+    if (questionType === "double-series" && doubleSeriesData !== undefined) {
+      properties["Série Double"] = {
+        rich_text: [{ text: { content: JSON.stringify(doubleSeriesData) } }],
+      };
+    } else if (questionType === "standard") {
+      // Clear double series data if switching back to standard
+      properties["Série Double"] = {
+        rich_text: [],
       };
     }
 
