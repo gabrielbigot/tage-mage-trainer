@@ -187,7 +187,13 @@ async function notionPageToQuestion(page: any) {
         : block.heading_3?.rich_text;
 
       const text = content?.map((t: any) => t.plain_text).join("") || "";
-      if (text.trim()) {
+
+      // Skip heading blocks that are just section titles
+      const headingKeywords = ["explication", "réponse", "solution", "calcul", "méthode"];
+      const isHeadingTitle = (block.type === "heading_2" || block.type === "heading_3") &&
+                             headingKeywords.some(keyword => text.trim().toLowerCase() === keyword);
+
+      if (text.trim() && !isHeadingTitle) {
         explanation += (explanation ? "\n" : "") + text;
       }
     } else if (block.type === "bulleted_list_item" && afterTodos) {
