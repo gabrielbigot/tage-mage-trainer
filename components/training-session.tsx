@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Clock, BookOpen } from "lucide-rea
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { DoubleSeriesDisplay } from "@/components/double-series-display";
 
 interface TrainingSessionProps {
   onExit: () => void;
@@ -281,6 +282,9 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
                           )}
                         </div>
                         <p className="font-medium text-lg leading-relaxed">{q.question}</p>
+                        {q.questionType === "double-series" && q.doubleSeriesData && (
+                          <DoubleSeriesDisplay data={q.doubleSeriesData} />
+                        )}
                         {q.imageUrl && (
                           <div className="my-4 rounded-xl overflow-hidden border bg-muted/50">
                             <img
@@ -403,6 +407,10 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
             <CardContent className="space-y-8 pt-6">
               <div className="space-y-6">
                 <p className="text-xl font-medium leading-relaxed">{currentQuestion.question}</p>
+
+                {currentQuestion.questionType === "double-series" && currentQuestion.doubleSeriesData && (
+                  <DoubleSeriesDisplay data={currentQuestion.doubleSeriesData} />
+                )}
 
                 {currentQuestion.imageUrl && (
                   <div className="rounded-xl overflow-hidden border bg-muted/30 shadow-inner">

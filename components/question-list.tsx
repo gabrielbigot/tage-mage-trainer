@@ -9,6 +9,7 @@ import { Trash2, Edit, Search, X, BookOpen, Filter } from "lucide-react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { DoubleSeriesDisplay } from "@/components/double-series-display";
 
 interface QuestionListProps {
   refresh?: number;
@@ -259,6 +260,12 @@ export function QuestionList({ refresh, onEdit }: QuestionListProps) {
                       </div>
 
                       <p className="font-medium text-lg leading-relaxed">{highlightText(q.question)}</p>
+
+                      {q.questionType === "double-series" && q.doubleSeriesData && (
+                        <div className="my-3">
+                          <DoubleSeriesDisplay data={q.doubleSeriesData} />
+                        </div>
+                      )}
 
                       {q.imageUrl && (
                         <div className="my-3 rounded-lg overflow-hidden border bg-muted/50 max-w-md">

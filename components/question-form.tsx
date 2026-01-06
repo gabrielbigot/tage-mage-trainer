@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DifficultyLevel, Question } from "@/lib/types";
+import { DifficultyLevel, Question, QuestionType, DoubleSeriesData } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { Plus, X, Star, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
+import { DoubleSeriesForm } from "@/components/double-series-form";
 
 interface QuestionFormProps {
   onQuestionAdded?: () => void;
@@ -17,6 +18,7 @@ interface QuestionFormProps {
 }
 
 export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: QuestionFormProps) {
+  const [questionType, setQuestionType] = useState<QuestionType>("standard");
   const [category, setCategory] = useState("");
   const [question, setQuestion] = useState("");
   const [options, setOptions] = useState(["", "", "", ""]);
@@ -30,10 +32,17 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
+  const [doubleSeriesData, setDoubleSeriesData] = useState<DoubleSeriesData>({
+    horizontalSeries: ["", "", "", "", "?"],
+    verticalSeries: ["", "", "", "", "?"],
+    horizontalLabel: "",
+    verticalLabel: "",
+  });
 
   // Load question data when editing
   useEffect(() => {
     if (editQuestion) {
+      setQuestionType(editQuestion.questionType || "standard");
       setCategory(editQuestion.category);
       setQuestion(editQuestion.question);
       setOptions(editQuestion.options);
@@ -44,6 +53,9 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
       setIsFavorite(editQuestion.isFavorite || false);
       setImageUrl(editQuestion.imageUrl || "");
       setImagePreview(editQuestion.imageUrl || "");
+      if (editQuestion.doubleSeriesData) {
+        setDoubleSeriesData(editQuestion.doubleSeriesData);
+      }
     }
   }, [editQuestion]);
 
@@ -164,6 +176,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           tags: tags.length > 0 ? tags : undefined,
           isFavorite,
           imageUrl: finalImageUrl || undefined,
+          questionType,
+          doubleSeriesData: questionType === "double-series" ? doubleSeriesData : undefined,
         });
       } else {
         // Add new question
@@ -177,6 +191,8 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           tags: tags.length > 0 ? tags : undefined,
           isFavorite,
           imageUrl: finalImageUrl || undefined,
+          questionType,
+          doubleSeriesData: questionType === "double-series" ? doubleSeriesData : undefined,
         });
       }
     } catch (error) {
@@ -189,6 +205,7 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setIsUploading(false);
 
     // Reset form
+    setQuestionType("standard");
     setCategory("");
     setQuestion("");
     setOptions(["", "", "", ""]);
@@ -201,6 +218,12 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setImageUrl("");
     setImageFile(null);
     setImagePreview("");
+    setDoubleSeriesData({
+      horizontalSeries: ["", "", "", "", "?"],
+      verticalSeries: ["", "", "", "", "?"],
+      horizontalLabel: "",
+      verticalLabel: "",
+    });
 
     onQuestionAdded?.();
     onCancelEdit?.();
@@ -208,6 +231,7 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
 
   const handleCancel = () => {
     // Reset form
+    setQuestionType("standard");
     setCategory("");
     setQuestion("");
     setOptions(["", "", "", ""]);
@@ -220,6 +244,12 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     setImageUrl("");
     setImageFile(null);
     setImagePreview("");
+    setDoubleSeriesData({
+      horizontalSeries: ["", "", "", "", "?"],
+      verticalSeries: ["", "", "", "", "?"],
+      horizontalLabel: "",
+      verticalLabel: "",
+    });
     onCancelEdit?.();
   };
 
@@ -230,7 +260,20 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="questionType">Type de question</Label>
+              <select
+                id="questionType"
+                value={questionType}
+                onChange={(e) => setQuestionType(e.target.value as QuestionType)}
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <option value="standard">Standard</option>
+                <option value="double-series">Série Double (Sous-test 6)</option>
+              </select>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="category">Catégorie</Label>
               <Input
@@ -269,55 +312,60 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="image">Image (optionnel)</Label>
-            <div className="space-y-3">
-              {imagePreview ? (
-                <div className="relative">
-                  <img
-                    src={imagePreview}
-                    alt="Aperçu"
-                    className="w-full h-48 object-contain border rounded-lg bg-muted"
-                  />
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleRemoveImage}
-                    className="absolute top-2 right-2"
-                  >
-                    <X className="h-4 w-4 mr-1" />
-                    Supprimer
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-center w-full">
-                  <label
-                    htmlFor="image"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold">Cliquez pour ajouter</span> ou glissez une image
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">PNG, JPG (max. 5MB)</p>
-                    </div>
-                    <input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="hidden"
+          {questionType === "standard" && (
+            <div className="space-y-2">
+              <Label htmlFor="image">Image (optionnel)</Label>
+              <div className="space-y-3">
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Aperçu"
+                      className="w-full h-48 object-contain border rounded-lg bg-muted"
                     />
-                  </label>
-                </div>
-              )}
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Supprimer
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center w-full">
+                    <label
+                      htmlFor="image"
+                      className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-semibold">Cliquez pour ajouter</span> ou glissez une image
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">PNG, JPG (max. 5MB)</p>
+                      </div>
+                      <input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label>Options de réponse</Label>
+          {questionType === "double-series" ? (
+            <DoubleSeriesForm value={doubleSeriesData} onChange={setDoubleSeriesData} />
+          ) : (
+            <div className="space-y-2">
+              <Label>Options de réponse</Label>
             {options.map((option, index) => (
               <div key={index} className="flex gap-2 items-center">
                 <div className="flex items-center gap-2 flex-1">
@@ -346,17 +394,18 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
                 )}
               </div>
             ))}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={addOption}
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter une option
-            </Button>
-          </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addOption}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter une option
+              </Button>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="explanation">Explication (optionnel)</Label>

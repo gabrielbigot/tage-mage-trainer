@@ -13,7 +13,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite } = body;
+    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite, questionType, doubleSeriesData } = body;
 
     const properties: any = {};
 
@@ -54,8 +54,8 @@ export async function PATCH(
       });
     }
 
-    // Si les options ou l'explication changent, recréer le contenu
-    if (options !== undefined || explanation !== undefined || correctAnswer !== undefined) {
+    // Si les options, l'explication, ou les séries doubles changent, recréer le contenu
+    if (options !== undefined || explanation !== undefined || correctAnswer !== undefined || doubleSeriesData !== undefined) {
       // Récupérer les blocs existants
       const response = await notion.blocks.children.list({
         block_id: id,
@@ -71,6 +71,39 @@ export async function PATCH(
       // Recréer le contenu
       const children: any[] = [];
 
+      // Si c'est une série double
+      if (questionType === "double-series" && doubleSeriesData) {
+        const { horizontalSeries, verticalSeries, horizontalLabel, verticalLabel } = doubleSeriesData;
+
+        // Série horizontale
+        const horizontalText = `SÉRIE HORIZONTALE\n${horizontalLabel ? `Label: ${horizontalLabel}\n` : ""}${horizontalSeries.join(" | ")}`;
+        children.push({
+          type: "callout",
+          callout: {
+            rich_text: [{ text: { content: horizontalText } }],
+            icon: { emoji: "➡️" },
+            color: "blue_background",
+          },
+        });
+
+        // Série verticale
+        const verticalText = `SÉRIE VERTICALE\n${verticalLabel ? `Label: ${verticalLabel}\n` : ""}${verticalSeries.join(" | ")}`;
+        children.push({
+          type: "callout",
+          callout: {
+            rich_text: [{ text: { content: verticalText } }],
+            icon: { emoji: "⬇️" },
+            color: "green_background",
+          },
+        });
+
+        children.push({
+          type: "paragraph",
+          paragraph: { rich_text: [] },
+        });
+      }
+
+      // Options de réponse
       if (options) {
         options.forEach((option: string, index: number) => {
           children.push({

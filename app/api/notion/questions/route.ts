@@ -38,9 +38,51 @@ async function notionPageToQuestion(page: any) {
   let explanation = "";
   let foundTodos = false;
   let afterTodos = false;
+  let questionType = "standard";
+  let doubleSeriesData = null;
+  let horizontalSeries: string[] = [];
+  let verticalSeries: string[] = [];
+  let horizontalLabel = "";
+  let verticalLabel = "";
+  let isParsingDoubleSeries = false;
+  let currentSeriesType = "";
 
   for (const block of blocks) {
-    if (block.type === "to_do") {
+    // Check for double series markers
+    if (block.type === "callout") {
+      const text = block.callout?.rich_text?.map((t: any) => t.plain_text).join("") || "";
+      const icon = block.callout?.icon?.emoji || "";
+
+      if (text.includes("SÉRIE HORIZONTALE") || icon === "➡️") {
+        questionType = "double-series";
+        isParsingDoubleSeries = true;
+        currentSeriesType = "horizontal";
+
+        // Parse label and series from text
+        const lines = text.split("\n");
+        for (const line of lines) {
+          if (line.includes("Label:")) {
+            horizontalLabel = line.replace("Label:", "").trim();
+          } else if (line.includes("|")) {
+            horizontalSeries = line.split("|").map((s: string) => s.trim());
+          }
+        }
+      } else if (text.includes("SÉRIE VERTICALE") || icon === "⬇️") {
+        questionType = "double-series";
+        isParsingDoubleSeries = true;
+        currentSeriesType = "vertical";
+
+        // Parse label and series from text
+        const lines = text.split("\n");
+        for (const line of lines) {
+          if (line.includes("Label:")) {
+            verticalLabel = line.replace("Label:", "").trim();
+          } else if (line.includes("|")) {
+            verticalSeries = line.split("|").map((s: string) => s.trim());
+          }
+        }
+      }
+    } else if (block.type === "to_do" && !isParsingDoubleSeries) {
       foundTodos = true;
       const text = block.to_do.rich_text?.[0]?.plain_text || "";
       options.push(text);
@@ -73,6 +115,16 @@ async function notionPageToQuestion(page: any) {
     }
   }
 
+  // Build double series data if found
+  if (questionType === "double-series" && horizontalSeries.length > 0 && verticalSeries.length > 0) {
+    doubleSeriesData = {
+      horizontalSeries,
+      verticalSeries,
+      horizontalLabel: horizontalLabel || undefined,
+      verticalLabel: verticalLabel || undefined,
+    };
+  }
+
   return {
     id: page.id,
     category,
@@ -84,6 +136,8 @@ async function notionPageToQuestion(page: any) {
     difficulty,
     tags: tags.length > 0 ? tags : undefined,
     isFavorite,
+    questionType,
+    doubleSeriesData,
   };
 }
 
@@ -160,7 +214,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite } = body;
+    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite, questionType, doubleSeriesData } = body;
 
     // Créer la page avec les propriétés
     const response = await notion.pages.create({
@@ -186,18 +240,62 @@ export async function POST(request: NextRequest) {
 
     const pageId = response.id;
 
-    // Ajouter le contenu (options + explication)
+    // Ajouter le contenu
     const children: any[] = [];
 
-    options.forEach((option: string, index: number) => {
+    // Si c'est une série double, créer des blocs callout
+    if (questionType === "double-series" && doubleSeriesData) {
+      const { horizontalSeries, verticalSeries, horizontalLabel, verticalLabel } = doubleSeriesData;
+
+      // Série horizontale
+      const horizontalText = `SÉRIE HORIZONTALE\n${horizontalLabel ? `Label: ${horizontalLabel}\n` : ""}${horizontalSeries.join(" | ")}`;
       children.push({
-        type: "to_do",
-        to_do: {
-          rich_text: [{ text: { content: option } }],
-          checked: index === correctAnswer,
+        type: "callout",
+        callout: {
+          rich_text: [{ text: { content: horizontalText } }],
+          icon: { emoji: "➡️" },
+          color: "blue_background",
         },
       });
-    });
+
+      // Série verticale
+      const verticalText = `SÉRIE VERTICALE\n${verticalLabel ? `Label: ${verticalLabel}\n` : ""}${verticalSeries.join(" | ")}`;
+      children.push({
+        type: "callout",
+        callout: {
+          rich_text: [{ text: { content: verticalText } }],
+          icon: { emoji: "⬇️" },
+          color: "green_background",
+        },
+      });
+
+      children.push({
+        type: "paragraph",
+        paragraph: { rich_text: [] },
+      });
+
+      // Options de réponse (paires de valeurs)
+      options.forEach((option: string, index: number) => {
+        children.push({
+          type: "to_do",
+          to_do: {
+            rich_text: [{ text: { content: option } }],
+            checked: index === correctAnswer,
+          },
+        });
+      });
+    } else {
+      // Question standard
+      options.forEach((option: string, index: number) => {
+        children.push({
+          type: "to_do",
+          to_do: {
+            rich_text: [{ text: { content: option } }],
+            checked: index === correctAnswer,
+          },
+        });
+      });
+    }
 
     children.push({
       type: "paragraph",

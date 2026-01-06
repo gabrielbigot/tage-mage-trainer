@@ -1,5 +1,13 @@
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type SessionMode = "practice" | "exam" | "review" | "flashcards";
+export type QuestionType = "standard" | "double-series";
+
+export interface DoubleSeriesData {
+  horizontalSeries: string[];  // ex: ["A", "B", "C", "D", "?"]
+  verticalSeries: string[];    // ex: ["5", "8", "11", "14", "?"]
+  horizontalLabel?: string;    // ex: "Série alphabétique"
+  verticalLabel?: string;      // ex: "Série numérique"
+}
 
 export interface Question {
   id: string;
@@ -15,6 +23,9 @@ export interface Question {
   notes?: string;
   isFavorite?: boolean;
   imageUrl?: string;
+  // Double series support
+  questionType?: QuestionType;
+  doubleSeriesData?: DoubleSeriesData;
   // Statistics
   timesAnswered?: number;
   timesCorrect?: number;
