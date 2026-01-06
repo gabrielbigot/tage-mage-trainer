@@ -3,10 +3,28 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { storage } from "@/lib/storage";
-import { Statistics, QuestionType } from "@/lib/types";
+import { Statistics, QuestionType, Question } from "@/lib/types";
 import { getReviewStats } from "@/lib/spaced-repetition";
-import { Trophy, Target, Clock, TrendingUp, Flame, Calendar, Zap, Brain, BookOpen, GraduationCap, BarChart3 } from "lucide-react";
+import { Trophy, Target, Clock, TrendingUp, Flame, Calendar, Zap, Brain, BookOpen, GraduationCap, BarChart3, Tag, Layers } from "lucide-react";
 import { motion } from "framer-motion";
+
+interface TagStats {
+  tag: string;
+  totalAnswered: number;
+  totalCorrect: number;
+  averageScore: number;
+  questionCount: number;
+}
+
+interface QuestionTypeStatsDisplay {
+  type: string;
+  label: string;
+  totalAnswered: number;
+  totalCorrect: number;
+  averageScore: number;
+  averageTime: number;
+  questionCount: number;
+}
 
 export function StatisticsView() {
   const [stats, setStats] = useState<Statistics | null>(null);
@@ -22,6 +40,8 @@ export function StatisticsView() {
     longest: 0,
     totalDaysActive: 0,
   });
+  const [tagStats, setTagStats] = useState<TagStats[]>([]);
+  const [questionTypeStatsDisplay, setQuestionTypeStatsDisplay] = useState<QuestionTypeStatsDisplay[]>([]);
 
   useEffect(() => {
     loadStats();
@@ -38,6 +58,63 @@ export function StatisticsView() {
     const questions = await storage.getQuestions();
     const reviewStats = getReviewStats(questions);
     setSRStats(reviewStats);
+
+    // Calculate tag stats
+    const tagMap = new Map<string, { totalAnswered: number; totalCorrect: number; questionCount: number }>();
+    questions.forEach((q: Question) => {
+      const tags = q.tags || [];
+      tags.forEach((tag: string) => {
+        const existing = tagMap.get(tag) || { totalAnswered: 0, totalCorrect: 0, questionCount: 0 };
+        existing.totalAnswered += q.timesAnswered || 0;
+        existing.totalCorrect += q.timesCorrect || 0;
+        existing.questionCount += 1;
+        tagMap.set(tag, existing);
+      });
+    });
+
+    const tagStatsArray: TagStats[] = Array.from(tagMap.entries())
+      .map(([tag, data]) => ({
+        tag,
+        totalAnswered: data.totalAnswered,
+        totalCorrect: data.totalCorrect,
+        averageScore: data.totalAnswered > 0 ? Math.round((data.totalCorrect / data.totalAnswered) * 100) : 0,
+        questionCount: data.questionCount,
+      }))
+      .filter(t => t.totalAnswered > 0)
+      .sort((a, b) => b.totalAnswered - a.totalAnswered);
+
+    setTagStats(tagStatsArray);
+
+    // Calculate question type stats display
+    const typeMap = new Map<string, { totalAnswered: number; totalCorrect: number; totalTime: number; questionCount: number }>();
+    questions.forEach((q: Question) => {
+      const type = q.questionType || "standard";
+      const existing = typeMap.get(type) || { totalAnswered: 0, totalCorrect: 0, totalTime: 0, questionCount: 0 };
+      existing.totalAnswered += q.timesAnswered || 0;
+      existing.totalCorrect += q.timesCorrect || 0;
+      existing.totalTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
+      existing.questionCount += 1;
+      typeMap.set(type, existing);
+    });
+
+    const typeLabels: Record<string, string> = {
+      "standard": "Questions classiques",
+      "double-series": "Double série",
+    };
+
+    const typeStatsArray: QuestionTypeStatsDisplay[] = Array.from(typeMap.entries())
+      .map(([type, data]) => ({
+        type,
+        label: typeLabels[type] || type,
+        totalAnswered: data.totalAnswered,
+        totalCorrect: data.totalCorrect,
+        averageScore: data.totalAnswered > 0 ? Math.round((data.totalCorrect / data.totalAnswered) * 100) : 0,
+        averageTime: data.totalAnswered > 0 ? Math.round(data.totalTime / data.totalAnswered) : 0,
+        questionCount: data.questionCount,
+      }))
+      .sort((a, b) => b.totalAnswered - a.totalAnswered);
+
+    setQuestionTypeStatsDisplay(typeStatsArray);
 
     // Load daily challenge streak
     if (typeof window !== "undefined") {
@@ -253,6 +330,135 @@ export function StatisticsView() {
                     </div>
                   );
                 })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+
+      {/* Question Type and Tag Statistics */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Question Type Statistics */}
+        <motion.div variants={item}>
+          <Card className="h-full border-white/5 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Layers className="h-5 w-5 text-indigo-500" />
+                Performance par type
+              </CardTitle>
+              <CardDescription>
+                Vos résultats selon le type de question
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5">
+                {questionTypeStatsDisplay.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Aucune donnée disponible
+                  </p>
+                ) : (
+                  questionTypeStatsDisplay.map((typeData) => (
+                    <div key={typeData.type} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{typeData.label}</span>
+                          <span className="text-xs text-muted-foreground">
+                            ({typeData.questionCount} questions)
+                          </span>
+                        </div>
+                        <span className={`font-bold ${getScoreColor(typeData.averageScore)}`}>
+                          {typeData.averageScore}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex-1 bg-muted/50 rounded-full h-2.5 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${typeData.averageScore}%` }}
+                            transition={{ duration: 1, delay: 0.5 }}
+                            className={`h-full rounded-full ${
+                              typeData.averageScore >= 80
+                                ? "bg-green-500"
+                                : typeData.averageScore >= 60
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}
+                          />
+                        </div>
+                        <span className="w-24 text-right font-mono">
+                          {typeData.totalCorrect}/{typeData.totalAnswered}
+                        </span>
+                      </div>
+                      {typeData.averageTime > 0 && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          <span>Temps moyen: {typeData.averageTime}s</span>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Tag Statistics */}
+        <motion.div variants={item}>
+          <Card className="h-full border-white/5 bg-card/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Tag className="h-5 w-5 text-teal-500" />
+                Performance par tag
+              </CardTitle>
+              <CardDescription>
+                Vos résultats par thématique
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-5 max-h-80 overflow-y-auto pr-2">
+                {tagStats.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Aucun tag avec des réponses
+                  </p>
+                ) : (
+                  tagStats.map((tagData) => (
+                    <div key={tagData.tag} className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-500 text-xs font-medium">
+                            {tagData.tag}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            ({tagData.questionCount} q.)
+                          </span>
+                        </div>
+                        <span className={`font-bold ${getScoreColor(tagData.averageScore)}`}>
+                          {tagData.averageScore}%
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <div className="flex-1 bg-muted/50 rounded-full h-2.5 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${tagData.averageScore}%` }}
+                            transition={{ duration: 1, delay: 0.5 }}
+                            className={`h-full rounded-full ${
+                              tagData.averageScore >= 80
+                                ? "bg-green-500"
+                                : tagData.averageScore >= 60
+                                ? "bg-yellow-500"
+                                : "bg-red-500"
+                            }`}
+                          />
+                        </div>
+                        <span className="w-24 text-right font-mono">
+                          {tagData.totalCorrect}/{tagData.totalAnswered}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
