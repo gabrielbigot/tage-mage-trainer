@@ -13,6 +13,10 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
   const horizontalQuestionIndex = horizontalSeries.findIndex(el => el === "?" || el === "");
   const verticalQuestionIndex = verticalSeries.findIndex(el => el === "?" || el === "");
 
+  // Si aucun "?" trouvé, prendre le milieu par défaut
+  const hIndex = horizontalQuestionIndex >= 0 ? horizontalQuestionIndex : Math.floor(horizontalSeries.length / 2);
+  const vIndex = verticalQuestionIndex >= 0 ? verticalQuestionIndex : Math.floor(verticalSeries.length / 2);
+
   return (
     <div className="my-6">
       {/* Labels des séries */}
@@ -32,7 +36,7 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
       {/* Matrice en croix */}
       <div className="flex flex-col items-center gap-0">
         {/* Série verticale supérieure */}
-        {verticalSeries.slice(0, verticalQuestionIndex).map((element, index) => (
+        {verticalSeries.slice(0, vIndex).map((element, index) => (
           <div
             key={`vert-top-${index}`}
             className={`
@@ -53,7 +57,7 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
         {/* Série horizontale avec intersection */}
         <div className="flex items-center gap-0">
           {horizontalSeries.map((horizElement, horizIndex) => {
-            const isIntersection = horizIndex === horizontalQuestionIndex;
+            const isIntersection = horizIndex === hIndex;
 
             return (
               <div
@@ -79,13 +83,13 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
         </div>
 
         {/* Série verticale inférieure */}
-        {verticalSeries.slice(verticalQuestionIndex + 1).map((element, index) => (
+        {verticalSeries.slice(vIndex + 1).map((element, index) => (
           <div
             key={`vert-bottom-${index}`}
             className={`
               px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
               border-l-2 border-r-2 border-b-2 border-gray-300 dark:border-gray-600
-              ${index === verticalSeries.length - verticalQuestionIndex - 2 ? "rounded-b-lg" : ""}
+              ${index === verticalSeries.length - vIndex - 2 ? "rounded-b-lg" : ""}
               ${
                 element === "?" || element === ""
                   ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
