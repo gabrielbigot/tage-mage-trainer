@@ -46,8 +46,44 @@ async function notionPageToQuestion(page: any) {
   let verticalLabel = "";
 
   for (const block of blocks) {
-    // Check for double series markers
-    if (block.type === "callout") {
+    // Check for double series markers in bullet lists (NEW SIMPLE FORMAT)
+    if (block.type === "bulleted_list_item") {
+      const text = block.bulleted_list_item?.rich_text?.map((t: any) => t.plain_text).join("") || "";
+
+      // Horizontal series: starts with → or ➡️
+      if (text.startsWith("→") || text.startsWith("➡️") || text.startsWith("➡")) {
+        questionType = "double-series";
+        const content = text.replace(/^[→➡️➡]\s*/, "").trim();
+
+        if (content.includes("Label:")) {
+          horizontalLabel = content.replace("Label:", "").trim();
+        } else if (content.includes("|")) {
+          horizontalSeries = content.split("|").map((s: string) => {
+            const cleaned = s.trim();
+            return cleaned === "?" || cleaned === "" ? "?" : cleaned;
+          });
+          console.log(`[Question ${title}] Parsed horizontal series (bullet):`, horizontalSeries);
+        }
+      }
+
+      // Vertical series: starts with ↓ or ⬇️
+      else if (text.startsWith("↓") || text.startsWith("⬇️") || text.startsWith("⬇")) {
+        questionType = "double-series";
+        const content = text.replace(/^[↓⬇️⬇]\s*/, "").trim();
+
+        if (content.includes("Label:")) {
+          verticalLabel = content.replace("Label:", "").trim();
+        } else if (content.includes("|")) {
+          verticalSeries = content.split("|").map((s: string) => {
+            const cleaned = s.trim();
+            return cleaned === "?" || cleaned === "" ? "?" : cleaned;
+          });
+          console.log(`[Question ${title}] Parsed vertical series (bullet):`, verticalSeries);
+        }
+      }
+    }
+    // BACKWARD COMPATIBILITY: Keep callout parsing for existing questions
+    else if (block.type === "callout") {
       const text = block.callout?.rich_text?.map((t: any) => t.plain_text).join("") || "";
       const icon = block.callout?.icon?.emoji || "";
 
@@ -299,31 +335,45 @@ export async function POST(request: NextRequest) {
     // Ajouter le contenu
     const children: any[] = [];
 
-    // Si c'est une série double, créer des blocs callout
+    // Si c'est une série double, créer des listes à puces (format simple)
     if (questionType === "double-series" && doubleSeriesData) {
       const { horizontalSeries, verticalSeries, horizontalLabel, verticalLabel } = doubleSeriesData;
 
-      // Série horizontale
-      const horizontalText = `SÉRIE HORIZONTALE\n${horizontalLabel ? `Label: ${horizontalLabel}\n` : ""}${horizontalSeries.join(" | ")}`;
+      // Série horizontale avec bullet
       children.push({
-        type: "callout",
-        callout: {
-          rich_text: [{ text: { content: horizontalText } }],
-          icon: { emoji: "➡️" },
-          color: "blue_background",
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [{ text: { content: `→ ${horizontalSeries.join(" | ")}` } }],
         },
       });
 
-      // Série verticale
-      const verticalText = `SÉRIE VERTICALE\n${verticalLabel ? `Label: ${verticalLabel}\n` : ""}${verticalSeries.join(" | ")}`;
+      // Label horizontal (optionnel)
+      if (horizontalLabel) {
+        children.push({
+          type: "bulleted_list_item",
+          bulleted_list_item: {
+            rich_text: [{ text: { content: `→ Label: ${horizontalLabel}` } }],
+          },
+        });
+      }
+
+      // Série verticale avec bullet
       children.push({
-        type: "callout",
-        callout: {
-          rich_text: [{ text: { content: verticalText } }],
-          icon: { emoji: "⬇️" },
-          color: "green_background",
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [{ text: { content: `↓ ${verticalSeries.join(" | ")}` } }],
         },
       });
+
+      // Label vertical (optionnel)
+      if (verticalLabel) {
+        children.push({
+          type: "bulleted_list_item",
+          bulleted_list_item: {
+            rich_text: [{ text: { content: `↓ Label: ${verticalLabel}` } }],
+          },
+        });
+      }
 
       children.push({
         type: "paragraph",
