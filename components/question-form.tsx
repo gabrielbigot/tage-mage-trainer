@@ -361,11 +361,19 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
             </div>
           )}
 
-          {questionType === "double-series" ? (
+          {questionType === "double-series" && (
             <DoubleSeriesForm value={doubleSeriesData} onChange={setDoubleSeriesData} />
-          ) : (
-            <div className="space-y-2">
-              <Label>Options de réponse</Label>
+          )}
+
+          <div className="space-y-2">
+            <Label>
+              Options de réponse
+              {questionType === "double-series" && (
+                <span className="text-xs text-muted-foreground ml-2">
+                  (Paires de valeurs : valeur horizontale et valeur verticale)
+                </span>
+              )}
+            </Label>
             {options.map((option, index) => (
               <div key={index} className="flex gap-2 items-center">
                 <div className="flex items-center gap-2 flex-1">
@@ -379,7 +387,11 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
                   <Input
                     value={option}
                     onChange={(e) => handleOptionChange(index, e.target.value)}
-                    placeholder={`Option ${index + 1}`}
+                    placeholder={
+                      questionType === "double-series"
+                        ? `Ex: C et 13`
+                        : `Option ${index + 1}`
+                    }
                   />
                 </div>
                 {options.length > 2 && (
@@ -394,18 +406,17 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
                 )}
               </div>
             ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={addOption}
-                className="w-full"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Ajouter une option
-              </Button>
-            </div>
-          )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addOption}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une option
+            </Button>
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="explanation">Explication (optionnel)</Label>
