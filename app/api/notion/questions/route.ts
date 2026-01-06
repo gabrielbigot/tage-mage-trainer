@@ -51,7 +51,7 @@ async function notionPageToQuestion(page: any) {
       const text = block.callout?.rich_text?.map((t: any) => t.plain_text).join("") || "";
       const icon = block.callout?.icon?.emoji || "";
 
-      if (text.includes("SÉRIE HORIZONTALE") || icon === "➡️") {
+      if (text.includes("SÉRIE HORIZONTALE") || text.includes("SERIE HORIZONTALE") || icon === "➡️") {
         questionType = "double-series";
 
         // Parse label and series from text - ignore empty lines
@@ -59,11 +59,15 @@ async function notionPageToQuestion(page: any) {
         for (const line of lines) {
           if (line.includes("Label:")) {
             horizontalLabel = line.replace("Label:", "").trim();
-          } else if (line.includes("|") && !line.includes("SÉRIE")) {
-            horizontalSeries = line.split("|").map((s: string) => s.trim());
+          } else if (line.includes("|") && !line.includes("SÉRIE") && !line.includes("SERIE")) {
+            // Clean up each element and normalize "?"
+            horizontalSeries = line.split("|").map((s: string) => {
+              const cleaned = s.trim();
+              return cleaned === "?" || cleaned === "" ? "?" : cleaned;
+            });
           }
         }
-      } else if (text.includes("SÉRIE VERTICALE") || icon === "⬇️") {
+      } else if (text.includes("SÉRIE VERTICALE") || text.includes("SERIE VERTICALE") || icon === "⬇️") {
         questionType = "double-series";
 
         // Parse label and series from text - ignore empty lines
@@ -71,8 +75,12 @@ async function notionPageToQuestion(page: any) {
         for (const line of lines) {
           if (line.includes("Label:")) {
             verticalLabel = line.replace("Label:", "").trim();
-          } else if (line.includes("|") && !line.includes("SÉRIE")) {
-            verticalSeries = line.split("|").map((s: string) => s.trim());
+          } else if (line.includes("|") && !line.includes("SÉRIE") && !line.includes("SERIE")) {
+            // Clean up each element and normalize "?"
+            verticalSeries = line.split("|").map((s: string) => {
+              const cleaned = s.trim();
+              return cleaned === "?" || cleaned === "" ? "?" : cleaned;
+            });
           }
         }
       }
