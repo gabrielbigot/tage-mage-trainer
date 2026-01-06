@@ -34,23 +34,28 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
       </div>
 
       {/* Matrice en croix */}
-      <div className="flex flex-col items-center gap-0">
-        {/* Série verticale supérieure */}
+      <div className="flex flex-col items-start gap-0">
+        {/* Série verticale supérieure - décalée à la position hIndex */}
         {verticalSeries.slice(0, vIndex).map((element, index) => (
           <div
             key={`vert-top-${index}`}
-            className={`
-              px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
-              border-l-2 border-r-2 border-t-2 border-gray-300 dark:border-gray-600
-              ${index === 0 ? "rounded-t-lg" : ""}
-              ${
-                element === "?" || element === ""
-                  ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
-                  : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
-              }
-            `}
+            className="flex"
+            style={{ marginLeft: `${hIndex * 80}px` }}
           >
-            {element || "?"}
+            <div
+              className={`
+                px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
+                border-l-2 border-r-2 border-t-2 border-gray-300 dark:border-gray-600
+                ${index === 0 ? "rounded-t-lg" : ""}
+                ${
+                  element === "?" || element === ""
+                    ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
+                    : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
+                }
+              `}
+            >
+              {element || "?"}
+            </div>
           </div>
         ))}
 
@@ -82,22 +87,27 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
           })}
         </div>
 
-        {/* Série verticale inférieure */}
+        {/* Série verticale inférieure - décalée à la position hIndex */}
         {verticalSeries.slice(vIndex + 1).map((element, index) => (
           <div
             key={`vert-bottom-${index}`}
-            className={`
-              px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
-              border-l-2 border-r-2 border-b-2 border-gray-300 dark:border-gray-600
-              ${index === verticalSeries.length - vIndex - 2 ? "rounded-b-lg" : ""}
-              ${
-                element === "?" || element === ""
-                  ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
-                  : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
-              }
-            `}
+            className="flex"
+            style={{ marginLeft: `${hIndex * 80}px` }}
           >
-            {element || "?"}
+            <div
+              className={`
+                px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
+                border-l-2 border-r-2 border-b-2 border-gray-300 dark:border-gray-600
+                ${index === verticalSeries.length - vIndex - 2 ? "rounded-b-lg" : ""}
+                ${
+                  element === "?" || element === ""
+                    ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
+                    : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
+                }
+              `}
+            >
+              {element || "?"}
+            </div>
           </div>
         ))}
       </div>
