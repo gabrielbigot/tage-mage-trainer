@@ -58,16 +58,38 @@ async function notionPageToQuestion(page: any) {
         // Parse label and series from text - ignore empty lines
         const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
         console.log(`[Question ${title}] Horizontal lines after split:`, lines);
-        for (const line of lines) {
-          if (line.includes("Label:")) {
-            horizontalLabel = line.replace("Label:", "").trim();
-          } else if (line.includes("|") && !line.includes("SÉRIE") && !line.includes("SERIE")) {
-            // Clean up each element and normalize "?"
-            horizontalSeries = line.split("|").map((s: string) => {
+
+        // Check if everything is on one line (format: SÉRIE HORIZONTALE Label: xxx A | B | C)
+        const firstLine = lines[0] || "";
+        if (firstLine.includes("|") && (firstLine.includes("SÉRIE HORIZONTALE") || firstLine.includes("SERIE HORIZONTALE"))) {
+          // Extract label if present
+          const labelMatch = firstLine.match(/Label:\s*([^A-Z0-9|]+)/);
+          if (labelMatch) {
+            horizontalLabel = labelMatch[1].trim();
+          }
+
+          // Extract series: everything after the last alphabetic word before the first "|"
+          const seriesMatch = firstLine.match(/([A-Z0-9\s|?]+\|[A-Z0-9\s|?]+)$/i);
+          if (seriesMatch) {
+            horizontalSeries = seriesMatch[1].split("|").map((s: string) => {
               const cleaned = s.trim();
               return cleaned === "?" || cleaned === "" ? "?" : cleaned;
             });
-            console.log(`[Question ${title}] Parsed horizontal series:`, horizontalSeries);
+            console.log(`[Question ${title}] Parsed horizontal series (single line):`, horizontalSeries);
+          }
+        } else {
+          // Multi-line format (original logic)
+          for (const line of lines) {
+            if (line.includes("Label:")) {
+              horizontalLabel = line.replace("Label:", "").trim();
+            } else if (line.includes("|") && !line.includes("SÉRIE") && !line.includes("SERIE")) {
+              // Clean up each element and normalize "?"
+              horizontalSeries = line.split("|").map((s: string) => {
+                const cleaned = s.trim();
+                return cleaned === "?" || cleaned === "" ? "?" : cleaned;
+              });
+              console.log(`[Question ${title}] Parsed horizontal series (multi-line):`, horizontalSeries);
+            }
           }
         }
       } else if (text.includes("SÉRIE VERTICALE") || text.includes("SERIE VERTICALE") || icon === "⬇️") {
@@ -77,16 +99,38 @@ async function notionPageToQuestion(page: any) {
         // Parse label and series from text - ignore empty lines
         const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
         console.log(`[Question ${title}] Vertical lines after split:`, lines);
-        for (const line of lines) {
-          if (line.includes("Label:")) {
-            verticalLabel = line.replace("Label:", "").trim();
-          } else if (line.includes("|") && !line.includes("SÉRIE") && !line.includes("SERIE")) {
-            // Clean up each element and normalize "?"
-            verticalSeries = line.split("|").map((s: string) => {
+
+        // Check if everything is on one line (format: SÉRIE VERTICALE Label: xxx A | B | C)
+        const firstLine = lines[0] || "";
+        if (firstLine.includes("|") && (firstLine.includes("SÉRIE VERTICALE") || firstLine.includes("SERIE VERTICALE"))) {
+          // Extract label if present
+          const labelMatch = firstLine.match(/Label:\s*([^A-Z0-9|]+)/);
+          if (labelMatch) {
+            verticalLabel = labelMatch[1].trim();
+          }
+
+          // Extract series: everything after the last alphabetic word before the first "|"
+          const seriesMatch = firstLine.match(/([A-Z0-9\s|?]+\|[A-Z0-9\s|?]+)$/i);
+          if (seriesMatch) {
+            verticalSeries = seriesMatch[1].split("|").map((s: string) => {
               const cleaned = s.trim();
               return cleaned === "?" || cleaned === "" ? "?" : cleaned;
             });
-            console.log(`[Question ${title}] Parsed vertical series:`, verticalSeries);
+            console.log(`[Question ${title}] Parsed vertical series (single line):`, verticalSeries);
+          }
+        } else {
+          // Multi-line format (original logic)
+          for (const line of lines) {
+            if (line.includes("Label:")) {
+              verticalLabel = line.replace("Label:", "").trim();
+            } else if (line.includes("|") && !line.includes("SÉRIE") && !line.includes("SERIE")) {
+              // Clean up each element and normalize "?"
+              verticalSeries = line.split("|").map((s: string) => {
+                const cleaned = s.trim();
+                return cleaned === "?" || cleaned === "" ? "?" : cleaned;
+              });
+              console.log(`[Question ${title}] Parsed vertical series (multi-line):`, verticalSeries);
+            }
           }
         }
       }
