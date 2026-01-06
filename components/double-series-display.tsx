@@ -29,86 +29,77 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
         )}
       </div>
 
-      {/* Matrice croisée */}
-      <div className="overflow-x-auto">
-        <div className="inline-block min-w-full">
-          <table className="border-collapse">
-            <thead>
-              <tr>
-                {/* Cellule vide en haut à gauche */}
-                <th className="border-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 p-2 w-20"></th>
+      {/* Matrice en croix */}
+      <div className="flex flex-col items-center gap-0">
+        {/* Série verticale supérieure */}
+        {verticalSeries.slice(0, verticalQuestionIndex).map((element, index) => (
+          <div
+            key={`vert-top-${index}`}
+            className={`
+              px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
+              border-l-2 border-r-2 border-t-2 border-gray-300 dark:border-gray-600
+              ${index === 0 ? "rounded-t-lg" : ""}
+              ${
+                element === "?" || element === ""
+                  ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
+                  : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
+              }
+            `}
+          >
+            {element || "?"}
+          </div>
+        ))}
 
-                {/* Série horizontale (colonnes) */}
-                {horizontalSeries.map((element, index) => (
-                  <th
-                    key={index}
-                    className={`
-                      border-2 border-gray-300 dark:border-gray-600 p-3 font-mono text-lg font-bold min-w-[60px]
-                      ${
-                        element === "?" || element === ""
-                          ? "bg-blue-500 dark:bg-blue-600 text-white animate-pulse"
-                          : "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
-                      }
-                    `}
-                  >
-                    {element || "?"}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {/* Série verticale (lignes) */}
-              {verticalSeries.map((vertElement, vertIndex) => (
-                <tr key={vertIndex}>
-                  {/* Cellule de la série verticale */}
-                  <td
-                    className={`
-                      border-2 border-gray-300 dark:border-gray-600 p-3 font-mono text-lg font-bold text-center
-                      ${
-                        vertElement === "?" || vertElement === ""
-                          ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
-                          : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
-                      }
-                    `}
-                  >
-                    {vertElement || "?"}
-                  </td>
+        {/* Série horizontale avec intersection */}
+        <div className="flex items-center gap-0">
+          {horizontalSeries.map((horizElement, horizIndex) => {
+            const isIntersection = horizIndex === horizontalQuestionIndex;
 
-                  {/* Cellules de croisement */}
-                  {horizontalSeries.map((horizElement, horizIndex) => {
-                    const isIntersection =
-                      (horizElement === "?" || horizElement === "") &&
-                      (vertElement === "?" || vertElement === "");
-
-                    return (
-                      <td
-                        key={horizIndex}
-                        className={`
-                          border-2 border-gray-300 dark:border-gray-600 p-3 text-center min-w-[60px]
-                          ${
-                            isIntersection
-                              ? "bg-gradient-to-br from-blue-500 to-green-500 dark:from-blue-600 dark:to-green-600 animate-pulse"
-                              : "bg-white dark:bg-gray-800"
-                          }
-                        `}
-                      >
-                        {isIntersection && (
-                          <div className="flex items-center justify-center">
-                            <span className="text-3xl font-bold text-white drop-shadow-lg">?</span>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            return (
+              <div
+                key={`horiz-${horizIndex}`}
+                className={`
+                  px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
+                  border-t-2 border-b-2 border-gray-300 dark:border-gray-600
+                  ${horizIndex === 0 ? "border-l-2 rounded-l-lg" : ""}
+                  ${horizIndex === horizontalSeries.length - 1 ? "border-r-2 rounded-r-lg" : ""}
+                  ${
+                    isIntersection
+                      ? "bg-gradient-to-br from-blue-500 to-green-500 dark:from-blue-600 dark:to-green-600 text-white border-4 border-yellow-400 dark:border-yellow-500 animate-pulse"
+                      : horizElement === "?" || horizElement === ""
+                      ? "bg-blue-500 dark:bg-blue-600 text-white animate-pulse"
+                      : "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
+                  }
+                `}
+              >
+                {horizElement || "?"}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Série verticale inférieure */}
+        {verticalSeries.slice(verticalQuestionIndex + 1).map((element, index) => (
+          <div
+            key={`vert-bottom-${index}`}
+            className={`
+              px-6 py-3 font-mono text-xl font-bold text-center min-w-[80px]
+              border-l-2 border-r-2 border-b-2 border-gray-300 dark:border-gray-600
+              ${index === verticalSeries.length - verticalQuestionIndex - 2 ? "rounded-b-lg" : ""}
+              ${
+                element === "?" || element === ""
+                  ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
+                  : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
+              }
+            `}
+          >
+            {element || "?"}
+          </div>
+        ))}
       </div>
 
       {/* Instructions */}
-      <div className="mt-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+      <div className="mt-6 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
         <p className="text-sm text-amber-900 dark:text-amber-100 text-center">
           <span className="font-semibold">Instructions :</span> Trouvez les deux valeurs manquantes qui se croisent
         </p>
