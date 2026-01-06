@@ -208,6 +208,36 @@ export const storage = {
       ? Math.max(...sessions.map(s => s.score || 0))
       : 0;
 
+    // Stats par type de question
+    const questionTypeStats: Record<string, { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }> = {
+      "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+    };
+
+    let standardTime = 0, doubleSeriesTime = 0;
+    questions.forEach(q => {
+      const type = q.questionType || "standard";
+      questionTypeStats[type].totalAnswered += q.timesAnswered || 0;
+      questionTypeStats[type].totalCorrect += q.timesCorrect || 0;
+      if (type === "standard") {
+        standardTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
+      } else {
+        doubleSeriesTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
+      }
+    });
+
+    Object.keys(questionTypeStats).forEach(type => {
+      questionTypeStats[type].averageScore = questionTypeStats[type].totalAnswered > 0
+        ? Math.round((questionTypeStats[type].totalCorrect / questionTypeStats[type].totalAnswered) * 100)
+        : 0;
+    });
+    questionTypeStats["standard"].averageTime = questionTypeStats["standard"].totalAnswered > 0
+      ? Math.round(standardTime / questionTypeStats["standard"].totalAnswered)
+      : 0;
+    questionTypeStats["double-series"].averageTime = questionTypeStats["double-series"].totalAnswered > 0
+      ? Math.round(doubleSeriesTime / questionTypeStats["double-series"].totalAnswered)
+      : 0;
+
     return {
       totalQuestions: questions.length,
       totalSessions: sessions.length,
@@ -217,6 +247,7 @@ export const storage = {
       recentSessions: sessions.slice(-10).reverse(),
       categoryStats,
       difficultyStats,
+      questionTypeStats: questionTypeStats as Record<"standard" | "double-series", { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }>,
       streak: this.getStreak(),
     };
   },
@@ -255,13 +286,13 @@ export const storage = {
   },
 
   // Get streak
-  getStreak(): { current: number; longest: number; lastSessionDate?: string } {
+  getStreak(): { current: number; longest: number; lastSessionDate?: string; totalDaysActive: number; weeklyActivity: boolean[] } {
     const STREAK_KEY = "tage-mage-streak";
 
-    if (typeof window === "undefined") return { current: 0, longest: 0 };
+    if (typeof window === "undefined") return { current: 0, longest: 0, totalDaysActive: 0, weeklyActivity: [false, false, false, false, false, false, false] };
 
     const streakData = localStorage.getItem(STREAK_KEY);
-    if (!streakData) return { current: 0, longest: 0 };
+    if (!streakData) return { current: 0, longest: 0, totalDaysActive: 0, weeklyActivity: [false, false, false, false, false, false, false] };
 
     const streak = JSON.parse(streakData);
     const today = new Date().toDateString();
@@ -276,7 +307,13 @@ export const storage = {
       }
     }
 
-    return streak;
+    return {
+      current: streak.current || 0,
+      longest: streak.longest || 0,
+      lastSessionDate: streak.lastSessionDate,
+      totalDaysActive: streak.totalDaysActive || 0,
+      weeklyActivity: streak.weeklyActivity || [false, false, false, false, false, false, false],
+    };
   },
 
   // Get questions that were answered incorrectly

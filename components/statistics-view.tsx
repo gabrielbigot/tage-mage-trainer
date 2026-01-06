@@ -3,20 +3,58 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { storage } from "@/lib/storage";
-import { Statistics } from "@/lib/types";
-import { Trophy, Target, Clock, TrendingUp, Flame, Calendar } from "lucide-react";
+import { Statistics, QuestionType } from "@/lib/types";
+import { getReviewStats } from "@/lib/spaced-repetition";
+import { Trophy, Target, Clock, TrendingUp, Flame, Calendar, Zap, Brain, BookOpen, GraduationCap, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export function StatisticsView() {
   const [stats, setStats] = useState<Statistics | null>(null);
+  const [srStats, setSRStats] = useState({
+    dueToday: 0,
+    newQuestions: 0,
+    mastered: 0,
+    learning: 0,
+    averageMastery: 0,
+  });
+  const [dailyStreak, setDailyStreak] = useState({
+    current: 0,
+    longest: 0,
+    totalDaysActive: 0,
+  });
 
   useEffect(() => {
     loadStats();
+    loadAdditionalStats();
   }, []);
 
   const loadStats = async () => {
     const statistics = await storage.getStatistics();
     setStats(statistics);
+  };
+
+  const loadAdditionalStats = async () => {
+    // Load spaced repetition stats
+    const questions = await storage.getQuestions();
+    const reviewStats = getReviewStats(questions);
+    setSRStats(reviewStats);
+
+    // Load daily challenge streak
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("daily-challenge-streak");
+      if (saved) {
+        try {
+          const data = JSON.parse(saved);
+          setDailyStreak({
+            current: data.current || 0,
+            longest: data.longest || 0,
+            totalDaysActive: data.totalDaysActive || 0,
+          });
+        } catch (e) {
+          console.error("Error loading daily streak:", e);
+        }
+      }
+    }
   };
 
   if (!stats) {
@@ -221,6 +259,119 @@ export function StatisticsView() {
         </motion.div>
       </div>
 
+      {/* Spaced Repetition Stats */}
+      <motion.div variants={item}>
+        <Card className="border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-500" />
+              Répétition Espacée
+            </CardTitle>
+            <CardDescription>
+              Progression de votre apprentissage intelligent
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center p-3 rounded-lg bg-background/50">
+                <div className="flex items-center justify-center mb-2">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                </div>
+                <p className="text-2xl font-bold text-orange-500">{srStats.dueToday}</p>
+                <p className="text-xs text-muted-foreground">À réviser</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-background/50">
+                <div className="flex items-center justify-center mb-2">
+                  <BookOpen className="h-5 w-5 text-blue-500" />
+                </div>
+                <p className="text-2xl font-bold text-blue-500">{srStats.newQuestions}</p>
+                <p className="text-xs text-muted-foreground">Nouvelles</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-background/50">
+                <div className="flex items-center justify-center mb-2">
+                  <GraduationCap className="h-5 w-5 text-green-500" />
+                </div>
+                <p className="text-2xl font-bold text-green-500">{srStats.mastered}</p>
+                <p className="text-xs text-muted-foreground">Maîtrisées</p>
+              </div>
+              <div className="text-center p-3 rounded-lg bg-background/50">
+                <div className="flex items-center justify-center mb-2">
+                  <BarChart3 className="h-5 w-5 text-purple-500" />
+                </div>
+                <p className="text-2xl font-bold text-purple-500">{srStats.averageMastery}%</p>
+                <p className="text-xs text-muted-foreground">Maîtrise moy.</p>
+              </div>
+            </div>
+
+            {/* Mastery progress bar */}
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Niveau de maîtrise global</span>
+                <span className={`font-bold ${
+                  srStats.averageMastery >= 80 ? "text-green-500" :
+                  srStats.averageMastery >= 50 ? "text-yellow-500" :
+                  "text-orange-500"
+                }`}>{srStats.averageMastery}%</span>
+              </div>
+              <div className="h-2.5 bg-muted/50 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${srStats.averageMastery}%` }}
+                  transition={{ duration: 1, delay: 0.5 }}
+                  className={`h-full rounded-full ${
+                    srStats.averageMastery >= 80 ? "bg-green-500" :
+                    srStats.averageMastery >= 50 ? "bg-yellow-500" :
+                    "bg-orange-500"
+                  }`}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Daily Challenge Stats */}
+      {(dailyStreak.current > 0 || dailyStreak.totalDaysActive > 0) && (
+        <motion.div variants={item}>
+          <Card className="border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-transparent backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-orange-500" />
+                Défis Quotidiens
+              </CardTitle>
+              <CardDescription>
+                Votre progression dans les défis quotidiens
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center p-4 rounded-lg bg-background/50">
+                  <div className="flex items-center justify-center mb-2">
+                    <Flame className="h-6 w-6 text-orange-500" />
+                  </div>
+                  <p className="text-3xl font-bold text-orange-500">{dailyStreak.current}</p>
+                  <p className="text-xs text-muted-foreground">Série actuelle</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-background/50">
+                  <div className="flex items-center justify-center mb-2">
+                    <Trophy className="h-6 w-6 text-yellow-500" />
+                  </div>
+                  <p className="text-3xl font-bold text-yellow-500">{dailyStreak.longest}</p>
+                  <p className="text-xs text-muted-foreground">Record</p>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-background/50">
+                  <div className="flex items-center justify-center mb-2">
+                    <Calendar className="h-6 w-6 text-blue-500" />
+                  </div>
+                  <p className="text-3xl font-bold text-blue-500">{dailyStreak.totalDaysActive}</p>
+                  <p className="text-xs text-muted-foreground">Jours actifs</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
       {/* Recent Sessions */}
       <motion.div variants={item}>
         <Card className="border-white/5 bg-card/50 backdrop-blur-sm">
@@ -257,6 +408,22 @@ export function StatisticsView() {
                         <span className="text-sm text-muted-foreground">
                           {session.questions.length} questions
                         </span>
+                        {session.mode && (
+                          <>
+                            <div className="h-4 w-px bg-border/50" />
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              session.mode === "sprint" ? "bg-yellow-500/10 text-yellow-500" :
+                              session.mode === "daily-challenge" ? "bg-orange-500/10 text-orange-500" :
+                              session.mode === "exam" ? "bg-red-500/10 text-red-500" :
+                              "bg-primary/10 text-primary"
+                            }`}>
+                              {session.mode === "sprint" ? "Sprint" :
+                               session.mode === "daily-challenge" ? "Défi" :
+                               session.mode === "exam" ? "Examen" :
+                               session.mode === "review" ? "Révision" : "Pratique"}
+                            </span>
+                          </>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(session.completedAt!).toLocaleDateString("fr-FR", {

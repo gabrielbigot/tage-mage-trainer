@@ -10,16 +10,19 @@ import { StatisticsView } from "@/components/statistics-view";
 import { ReviewMode } from "@/components/review-mode";
 import { ExamMode } from "@/components/exam-mode";
 import { PracticeMode } from "@/components/practice-mode";
+import { SprintMode } from "@/components/sprint-mode";
+import { DailyChallenge } from "@/components/daily-challenge";
+import { SpacedReviewMode } from "@/components/spaced-review-mode";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserNav } from "@/components/auth/user-nav";
 import { AuthForm } from "@/components/auth/auth-form";
 import { ImportExport } from "@/components/import-export";
-import { BookOpen, Brain, Home, BarChart3, RefreshCw, Loader2, Timer, ArrowRight, Sparkles } from "lucide-react";
+import { BookOpen, Brain, Home, BarChart3, RefreshCw, Loader2, Timer, ArrowRight, Sparkles, Zap, Calendar, GraduationCap } from "lucide-react";
 import { Question } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
 
-type View = "home" | "manage" | "manage-add" | "manage-view" | "practice" | "train" | "stats" | "review" | "exam";
+type View = "home" | "manage" | "manage-add" | "manage-view" | "practice" | "train" | "stats" | "review" | "exam" | "sprint" | "daily-challenge" | "spaced-review";
 
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
@@ -125,6 +128,24 @@ export default function HomePage() {
               onStartExam={handleStartExam}
               onBack={() => setView("home")}
             />
+          </div>
+        );
+      case "sprint":
+        return (
+          <div className="max-w-6xl mx-auto">
+            <SprintMode onBack={() => setView("home")} />
+          </div>
+        );
+      case "daily-challenge":
+        return (
+          <div className="max-w-6xl mx-auto">
+            <DailyChallenge onBack={() => setView("home")} />
+          </div>
+        );
+      case "spaced-review":
+        return (
+          <div className="max-w-6xl mx-auto">
+            <SpacedReviewMode onBack={() => setView("home")} />
           </div>
         );
       case "manage":
@@ -308,6 +329,36 @@ export default function HomePage() {
                   btnText: "Configurer"
                 },
                 {
+                  title: "Mode Sprint",
+                  description: "20 questions, 10 minutes. Rapidité !",
+                  icon: Zap,
+                  action: () => setView("sprint"),
+                  color: "text-yellow-500",
+                  bg: "bg-yellow-500/10",
+                  btnText: "Sprinter",
+                  highlight: true
+                },
+                {
+                  title: "Défi Quotidien",
+                  description: "Un défi par jour pour garder le rythme",
+                  icon: Calendar,
+                  action: () => setView("daily-challenge"),
+                  color: "text-orange-500",
+                  bg: "bg-orange-500/10",
+                  btnText: "Relever",
+                  highlight: true
+                },
+                {
+                  title: "Répétition Espacée",
+                  description: "Algorithme SM-2 pour mémoriser",
+                  icon: GraduationCap,
+                  action: () => setView("spaced-review"),
+                  color: "text-purple-500",
+                  bg: "bg-purple-500/10",
+                  btnText: "Réviser",
+                  highlight: true
+                },
+                {
                   title: "Mode Examen",
                   description: "Conditions réelles chronométrées",
                   icon: Timer,
@@ -317,12 +368,12 @@ export default function HomePage() {
                   btnText: "Se tester"
                 },
                 {
-                  title: "Révision",
+                  title: "Révision Classique",
                   description: "Ciblez vos erreurs et points faibles",
                   icon: RefreshCw,
                   action: () => setView("review"),
-                  color: "text-orange-500",
-                  bg: "bg-orange-500/10",
+                  color: "text-teal-500",
+                  bg: "bg-teal-500/10",
                   btnText: "Réviser"
                 },
                 {
@@ -339,8 +390,8 @@ export default function HomePage() {
                   description: "Gérez vos questions et imports",
                   icon: BookOpen,
                   action: () => setView("manage"),
-                  color: "text-purple-500",
-                  bg: "bg-purple-500/10",
+                  color: "text-pink-500",
+                  bg: "bg-pink-500/10",
                   btnText: "Gérer"
                 }
               ].map((item, index) => (
@@ -350,13 +401,20 @@ export default function HomePage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
                 >
-                  <Card className="h-full border-white/5 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all hover:shadow-xl hover:-translate-y-1 group cursor-pointer" onClick={item.action}>
+                  <Card className={`h-full border-white/5 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all hover:shadow-xl hover:-translate-y-1 group cursor-pointer ${(item as any).highlight ? 'ring-1 ring-primary/20' : ''}`} onClick={item.action}>
                     <CardHeader>
                       <div className="flex items-center justify-between mb-2">
                         <div className={`p-3 rounded-xl ${item.bg} group-hover:scale-110 transition-transform`}>
                           <item.icon className={`h-6 w-6 ${item.color}`} />
                         </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                        <div className="flex items-center gap-2">
+                          {(item as any).highlight && (
+                            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              Nouveau
+                            </span>
+                          )}
+                          <ArrowRight className="h-5 w-5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all -translate-x-2 group-hover:translate-x-0" />
+                        </div>
                       </div>
                       <CardTitle className="text-xl">{item.title}</CardTitle>
                       <CardDescription>{item.description}</CardDescription>
@@ -375,18 +433,18 @@ export default function HomePage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.8 }}
               >
-                <Card className="h-full border-none bg-gradient-to-br from-primary/20 to-purple-600/20 backdrop-blur-sm relative overflow-hidden">
+                <Card className="h-full border-none bg-gradient-to-br from-yellow-500/20 to-orange-600/20 backdrop-blur-sm relative overflow-hidden">
                   <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
                   <CardHeader>
                     <div className="flex items-center gap-2 mb-2">
                       <Sparkles className="h-5 w-5 text-yellow-400" />
-                      <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">Premium</span>
+                      <span className="text-sm font-bold text-yellow-400 uppercase tracking-wider">Nouveautés</span>
                     </div>
-                    <CardTitle className="text-xl">Nouveau Design</CardTitle>
+                    <CardTitle className="text-xl">Sprint + Défis + SM-2</CardTitle>
                     <CardDescription className="text-foreground/80">
-                      Profitez d&apos;une interface fluide et moderne pour une meilleure concentration.
+                      Mode Sprint rapide, Défis quotidiens avec streaks, et Répétition espacée intelligente !
                     </CardDescription>
                   </CardHeader>
                 </Card>
