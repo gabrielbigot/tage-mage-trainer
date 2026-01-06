@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, X, ArrowRight, ArrowDown } from "lucide-react";
 import { DoubleSeriesData } from "@/lib/types";
+import { DoubleSeriesDisplay } from "@/components/double-series-display";
 
 interface DoubleSeriesFormProps {
   value: DoubleSeriesData;
@@ -248,51 +249,16 @@ export function DoubleSeriesForm({ value, onChange }: DoubleSeriesFormProps) {
         </CardContent>
       </Card>
 
-      <div className="p-4 bg-muted rounded-lg">
-        <p className="text-sm text-muted-foreground mb-2">
-          <strong>Aperçu de la matrice :</strong>
-        </p>
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-blue-600 mb-1">
-              {value.horizontalLabel || "Série horizontale"}
-            </p>
-            <div className="flex gap-1">
-              {value.horizontalSeries.map((el, i) => (
-                <span
-                  key={i}
-                  className={`px-2 py-1 text-xs font-mono rounded ${
-                    el === "?" || el === ""
-                      ? "bg-blue-200 text-blue-900"
-                      : "bg-blue-100 text-blue-700"
-                  }`}
-                >
-                  {el || "?"}
-                </span>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-green-600 mb-1">
-              {value.verticalLabel || "Série verticale"}
-            </p>
-            <div className="flex gap-1">
-              {value.verticalSeries.map((el, i) => (
-                <span
-                  key={i}
-                  className={`px-2 py-1 text-xs font-mono rounded ${
-                    el === "?" || el === ""
-                      ? "bg-green-200 text-green-900"
-                      : "bg-green-100 text-green-700"
-                  }`}
-                >
-                  {el || "?"}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <Card className="bg-muted/50">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">
+            Aperçu de la matrice croisée
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DoubleSeriesDisplay data={value} />
+        </CardContent>
+      </Card>
     </div>
   );
 }
