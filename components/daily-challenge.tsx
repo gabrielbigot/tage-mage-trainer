@@ -576,7 +576,7 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
 
         <Button onClick={onBack} className="w-full" size="lg">
           <Home className="h-4 w-4 mr-2" />
-          Retour à l'accueil
+          Retour à l&apos;accueil
         </Button>
       </div>
     );

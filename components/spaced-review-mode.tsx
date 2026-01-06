@@ -349,13 +349,13 @@ export function SpacedReviewMode({ onBack }: SpacedReviewModeProps) {
           <CardContent>
             <div className="space-y-3 text-sm text-muted-foreground">
               <p>
-                <strong className="text-foreground">1.</strong> L'algorithme SM-2 calcule automatiquement quand vous devez réviser chaque question.
+                <strong className="text-foreground">1.</strong> L&apos;algorithme SM-2 calcule automatiquement quand vous devez réviser chaque question.
               </p>
               <p>
-                <strong className="text-foreground">2.</strong> Plus vous répondez correctement et rapidement, plus l'intervalle avant la prochaine révision augmente.
+                <strong className="text-foreground">2.</strong> Plus vous répondez correctement et rapidement, plus l&apos;intervalle avant la prochaine révision augmente.
               </p>
               <p>
-                <strong className="text-foreground">3.</strong> Les questions difficiles sont présentées plus fréquemment jusqu'à ce qu'elles soient maîtrisées.
+                <strong className="text-foreground">3.</strong> Les questions difficiles sont présentées plus fréquemment jusqu&apos;à ce qu&apos;elles soient maîtrisées.
               </p>
             </div>
           </CardContent>
