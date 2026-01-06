@@ -78,7 +78,7 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Configuration de l'examen</CardTitle>
+            <CardTitle>Configuration de l&apos;examen</CardTitle>
             <CardDescription>
               Personnalisez les paramètres de votre session chronométrée
             </CardDescription>
@@ -195,7 +195,7 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
-              Résumé de l'examen
+              Résumé de l&apos;examen
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -242,7 +242,7 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
               disabled={questions.length === 0}
             >
               <Play className="h-5 w-5 mr-2" />
-              Démarrer l'examen
+              Démarrer l&apos;examen
             </Button>
           </CardContent>
         </Card>

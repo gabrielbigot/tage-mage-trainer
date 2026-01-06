@@ -266,7 +266,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent>
               <CardDescription className="mb-4">
-                Mode chronométré pour s'entraîner
+                Mode chronométré pour s&apos;entraîner
               </CardDescription>
               <Button
                 onClick={() => setView("exam")}
