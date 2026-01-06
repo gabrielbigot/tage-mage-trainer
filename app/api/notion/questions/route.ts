@@ -54,24 +54,24 @@ async function notionPageToQuestion(page: any) {
       if (text.includes("SÉRIE HORIZONTALE") || icon === "➡️") {
         questionType = "double-series";
 
-        // Parse label and series from text
-        const lines = text.split("\n");
+        // Parse label and series from text - ignore empty lines
+        const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
         for (const line of lines) {
           if (line.includes("Label:")) {
             horizontalLabel = line.replace("Label:", "").trim();
-          } else if (line.includes("|")) {
+          } else if (line.includes("|") && !line.includes("SÉRIE")) {
             horizontalSeries = line.split("|").map((s: string) => s.trim());
           }
         }
       } else if (text.includes("SÉRIE VERTICALE") || icon === "⬇️") {
         questionType = "double-series";
 
-        // Parse label and series from text
-        const lines = text.split("\n");
+        // Parse label and series from text - ignore empty lines
+        const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
         for (const line of lines) {
           if (line.includes("Label:")) {
             verticalLabel = line.replace("Label:", "").trim();
-          } else if (line.includes("|")) {
+          } else if (line.includes("|") && !line.includes("SÉRIE")) {
             verticalSeries = line.split("|").map((s: string) => s.trim());
           }
         }
