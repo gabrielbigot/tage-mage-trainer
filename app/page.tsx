@@ -9,6 +9,7 @@ import { TrainingSession } from "@/components/training-session";
 import { StatisticsView } from "@/components/statistics-view";
 import { ReviewMode } from "@/components/review-mode";
 import { ExamMode } from "@/components/exam-mode";
+import { PracticeMode } from "@/components/practice-mode";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserNav } from "@/components/auth/user-nav";
 import { AuthForm } from "@/components/auth/auth-form";
@@ -18,12 +19,13 @@ import { Question } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { motion, AnimatePresence } from "framer-motion";
 
-type View = "home" | "manage" | "manage-add" | "manage-view" | "train" | "stats" | "review" | "exam";
+type View = "home" | "manage" | "manage-add" | "manage-view" | "practice" | "train" | "stats" | "review" | "exam";
 
 export default function HomePage() {
   const [view, setView] = useState<View>("home");
   const [refreshKey, setRefreshKey] = useState(0);
   const [reviewQuestions, setReviewQuestions] = useState<Question[]>([]);
+  const [practiceQuestions, setPracticeQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
   const [timePerQuestion, setTimePerQuestion] = useState<number>(0);
@@ -56,6 +58,11 @@ export default function HomePage() {
     setView("train");
   };
 
+  const handleStartPractice = (questions: Question[]) => {
+    setPracticeQuestions(questions);
+    setView("train");
+  };
+
   // Show loading state
   if (loading) {
     return (
@@ -76,20 +83,38 @@ export default function HomePage() {
   const renderContent = () => {
     switch (view) {
       case "train":
-        const customQuestions = examQuestions.length > 0 ? examQuestions : reviewQuestions;
-        const sessionMode = examQuestions.length > 0 ? "exam" : reviewQuestions.length > 0 ? "review" : "practice";
+        const customQuestions = examQuestions.length > 0
+          ? examQuestions
+          : reviewQuestions.length > 0
+          ? reviewQuestions
+          : practiceQuestions;
+        const sessionMode = examQuestions.length > 0
+          ? "exam"
+          : reviewQuestions.length > 0
+          ? "review"
+          : "practice";
         return (
           <div className="max-w-3xl mx-auto">
             <TrainingSession
               onExit={() => {
                 setView("home");
                 setReviewQuestions([]);
+                setPracticeQuestions([]);
                 setExamQuestions([]);
                 setTimePerQuestion(0);
               }}
               mode={sessionMode}
               customQuestions={customQuestions.length > 0 ? customQuestions : undefined}
               timePerQuestion={timePerQuestion}
+            />
+          </div>
+        );
+      case "practice":
+        return (
+          <div className="max-w-6xl mx-auto">
+            <PracticeMode
+              onStartPractice={handleStartPractice}
+              onBack={() => setView("home")}
             />
           </div>
         );
@@ -275,12 +300,12 @@ export default function HomePage() {
               {[
                 {
                   title: "Entraînement",
-                  description: "Session rapide avec questions aléatoires",
+                  description: "Configurez votre session personnalisée",
                   icon: Brain,
-                  action: () => setView("train"),
+                  action: () => setView("practice"),
                   color: "text-primary",
                   bg: "bg-primary/10",
-                  btnText: "Démarrer"
+                  btnText: "Configurer"
                 },
                 {
                   title: "Mode Examen",
