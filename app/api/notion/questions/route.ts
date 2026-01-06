@@ -53,9 +53,11 @@ async function notionPageToQuestion(page: any) {
 
       if (text.includes("SÉRIE HORIZONTALE") || text.includes("SERIE HORIZONTALE") || icon === "➡️") {
         questionType = "double-series";
+        console.log(`[Question ${title}] Found horizontal series callout:`, text);
 
         // Parse label and series from text - ignore empty lines
         const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        console.log(`[Question ${title}] Horizontal lines after split:`, lines);
         for (const line of lines) {
           if (line.includes("Label:")) {
             horizontalLabel = line.replace("Label:", "").trim();
@@ -65,13 +67,16 @@ async function notionPageToQuestion(page: any) {
               const cleaned = s.trim();
               return cleaned === "?" || cleaned === "" ? "?" : cleaned;
             });
+            console.log(`[Question ${title}] Parsed horizontal series:`, horizontalSeries);
           }
         }
       } else if (text.includes("SÉRIE VERTICALE") || text.includes("SERIE VERTICALE") || icon === "⬇️") {
         questionType = "double-series";
+        console.log(`[Question ${title}] Found vertical series callout:`, text);
 
         // Parse label and series from text - ignore empty lines
         const lines = text.split("\n").map((l: string) => l.trim()).filter((l: string) => l.length > 0);
+        console.log(`[Question ${title}] Vertical lines after split:`, lines);
         for (const line of lines) {
           if (line.includes("Label:")) {
             verticalLabel = line.replace("Label:", "").trim();
@@ -81,6 +86,7 @@ async function notionPageToQuestion(page: any) {
               const cleaned = s.trim();
               return cleaned === "?" || cleaned === "" ? "?" : cleaned;
             });
+            console.log(`[Question ${title}] Parsed vertical series:`, verticalSeries);
           }
         }
       }
@@ -118,6 +124,7 @@ async function notionPageToQuestion(page: any) {
   }
 
   // Build double series data if found
+  console.log(`[Question ${title}] Final check - questionType: ${questionType}, hSeries length: ${horizontalSeries.length}, vSeries length: ${verticalSeries.length}`);
   if (questionType === "double-series" && horizontalSeries.length > 0 && verticalSeries.length > 0) {
     doubleSeriesData = {
       horizontalSeries,
@@ -125,6 +132,9 @@ async function notionPageToQuestion(page: any) {
       horizontalLabel: horizontalLabel || undefined,
       verticalLabel: verticalLabel || undefined,
     };
+    console.log(`[Question ${title}] Created doubleSeriesData:`, doubleSeriesData);
+  } else if (questionType === "double-series") {
+    console.error(`[Question ${title}] ERROR: Double series detected but data incomplete! hSeries:`, horizontalSeries, "vSeries:", verticalSeries);
   }
 
   return {
