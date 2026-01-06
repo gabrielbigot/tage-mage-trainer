@@ -44,8 +44,6 @@ async function notionPageToQuestion(page: any) {
   let verticalSeries: string[] = [];
   let horizontalLabel = "";
   let verticalLabel = "";
-  let isParsingDoubleSeries = false;
-  let currentSeriesType = "";
 
   for (const block of blocks) {
     // Check for double series markers
@@ -55,8 +53,6 @@ async function notionPageToQuestion(page: any) {
 
       if (text.includes("SÉRIE HORIZONTALE") || icon === "➡️") {
         questionType = "double-series";
-        isParsingDoubleSeries = true;
-        currentSeriesType = "horizontal";
 
         // Parse label and series from text
         const lines = text.split("\n");
@@ -69,8 +65,6 @@ async function notionPageToQuestion(page: any) {
         }
       } else if (text.includes("SÉRIE VERTICALE") || icon === "⬇️") {
         questionType = "double-series";
-        isParsingDoubleSeries = true;
-        currentSeriesType = "vertical";
 
         // Parse label and series from text
         const lines = text.split("\n");
@@ -82,7 +76,7 @@ async function notionPageToQuestion(page: any) {
           }
         }
       }
-    } else if (block.type === "to_do" && !isParsingDoubleSeries) {
+    } else if (block.type === "to_do") {
       foundTodos = true;
       const text = block.to_do.rich_text?.[0]?.plain_text || "";
       options.push(text);
