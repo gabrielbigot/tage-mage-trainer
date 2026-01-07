@@ -349,12 +349,18 @@ export const supabaseStorage = {
     totalTime: number
   ): Promise<void> {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      console.error("User not authenticated");
+      return;
+    }
 
     const correctAnswers = results.filter(r => r.isCorrect).length;
     const score = Math.round((correctAnswers / results.length) * 100);
 
     // Update session
-    await supabase
+    const { error: sessionError } = await supabase
       .from("training_sessions")
       .update({
         score,
@@ -363,48 +369,97 @@ export const supabaseStorage = {
       })
       .eq("id", sessionId);
 
-    // Insert question results
+    if (sessionError) {
+      console.error("Error updating session:", sessionError);
+    }
+
+    // Calculate stats by difficulty
+    let easyCorrect = 0, easyTotal = 0;
+    let mediumCorrect = 0, mediumTotal = 0;
+    let hardCorrect = 0, hardTotal = 0;
+    const categoryStats: Record<string, { totalAnswered: number; totalCorrect: number }> = {};
+    const tagStats: Record<string, { totalAnswered: number; totalCorrect: number }> = {};
+
+    for (const result of results) {
+      const question = result.question;
+      if (!question) continue;
+
+      // Difficulty stats
+      const difficulty = question.difficulty || "medium";
+      if (difficulty === "easy") {
+        easyTotal++;
+        if (result.isCorrect) easyCorrect++;
+      } else if (difficulty === "medium") {
+        mediumTotal++;
+        if (result.isCorrect) mediumCorrect++;
+      } else if (difficulty === "hard") {
+        hardTotal++;
+        if (result.isCorrect) hardCorrect++;
+      }
+
+      // Category stats
+      const category = question.category;
+      if (category) {
+        if (!categoryStats[category]) {
+          categoryStats[category] = { totalAnswered: 0, totalCorrect: 0 };
+        }
+        categoryStats[category].totalAnswered++;
+        if (result.isCorrect) categoryStats[category].totalCorrect++;
+      }
+
+      // Tag stats
+      if (question.tags) {
+        for (const tag of question.tags) {
+          if (!tagStats[tag]) {
+            tagStats[tag] = { totalAnswered: 0, totalCorrect: 0 };
+          }
+          tagStats[tag].totalAnswered++;
+          if (result.isCorrect) tagStats[tag].totalCorrect++;
+        }
+      }
+    }
+
+    // Insert aggregated session stats
+    const { error: statsError } = await supabase
+      .from("session_stats")
+      .insert({
+        session_id: sessionId,
+        user_id: user.id,
+        total_questions: results.length,
+        correct_answers: correctAnswers,
+        incorrect_answers: results.length - correctAnswers,
+        score,
+        total_time: totalTime,
+        average_time_per_question: results.length > 0 ? totalTime / results.length : 0,
+        easy_correct: easyCorrect,
+        easy_total: easyTotal,
+        medium_correct: mediumCorrect,
+        medium_total: mediumTotal,
+        hard_correct: hardCorrect,
+        hard_total: hardTotal,
+        category_stats: categoryStats,
+        tag_stats: tagStats,
+      });
+
+    if (statsError) {
+      console.error("Error inserting session stats:", statsError);
+    }
+
+    // Also insert individual question results (without foreign key constraint)
     const questionResults = results.map(r => ({
       session_id: sessionId,
-      question_id: r.questionId,
+      question_id: r.questionId, // Now stored as TEXT, works with Notion IDs
       user_answer: r.userAnswer,
       is_correct: r.isCorrect,
       time_spent: r.timeSpent || 0,
     }));
 
-    await supabase
+    const { error: resultsError } = await supabase
       .from("question_results")
       .insert(questionResults);
 
-    // Update question statistics
-    for (const result of results) {
-      const { data: question } = await supabase
-        .from("questions")
-        .select("times_answered, times_correct, times_incorrect, average_time_spent")
-        .eq("id", result.questionId)
-        .single();
-
-      if (question) {
-        const newTimesAnswered = (question.times_answered || 0) + 1;
-        const newTimesCorrect = (question.times_correct || 0) + (result.isCorrect ? 1 : 0);
-        const newTimesIncorrect = (question.times_incorrect || 0) + (result.isCorrect ? 0 : 1);
-
-        let newAverageTime = question.average_time_spent || 0;
-        if (result.timeSpent) {
-          newAverageTime = ((question.average_time_spent || 0) * (question.times_answered || 0) + result.timeSpent) / newTimesAnswered;
-        }
-
-        await supabase
-          .from("questions")
-          .update({
-            times_answered: newTimesAnswered,
-            times_correct: newTimesCorrect,
-            times_incorrect: newTimesIncorrect,
-            last_answered_at: new Date().toISOString(),
-            average_time_spent: newAverageTime,
-          })
-          .eq("id", result.questionId);
-      }
+    if (resultsError) {
+      console.error("Error inserting question results:", resultsError);
     }
 
     // Update streak
@@ -498,25 +553,27 @@ export const supabaseStorage = {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
+    const emptyStats: Statistics = {
+      totalQuestions: 0,
+      totalSessions: 0,
+      totalTimeSpent: 0,
+      averageScore: 0,
+      bestScore: 0,
+      recentSessions: [],
+      categoryStats: {},
+      difficultyStats: {
+        easy: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+        medium: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+        hard: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+      },
+      questionTypeStats: {
+        "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+        "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      },
+    };
+
     if (!user) {
-      return {
-        totalQuestions: 0,
-        totalSessions: 0,
-        totalTimeSpent: 0,
-        averageScore: 0,
-        bestScore: 0,
-        recentSessions: [],
-        categoryStats: {},
-        difficultyStats: {
-          easy: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
-          medium: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
-          hard: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
-        },
-        questionTypeStats: {
-          "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
-          "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
-        },
-      };
+      return emptyStats;
     }
 
     // Get completed sessions
@@ -529,17 +586,54 @@ export const supabaseStorage = {
 
     const completedSessions = sessions || [];
 
-    // Get questions with stats
-    const questions = await this.getQuestions();
+    // Get aggregated stats from session_stats table
+    const { data: sessionStats } = await supabase
+      .from("session_stats")
+      .select("*")
+      .eq("user_id", user.id);
 
-    // Category stats
+    const allStats = sessionStats || [];
+
+    // Aggregate difficulty stats from session_stats
+    const difficultyStats: Record<DifficultyLevel, { totalAnswered: number; totalCorrect: number; averageScore: number }> = {
+      easy: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+      medium: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+      hard: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+    };
+
+    let totalQuestionsAnswered = 0;
+    let totalCorrectAnswers = 0;
+
+    allStats.forEach(stat => {
+      difficultyStats.easy.totalAnswered += stat.easy_total || 0;
+      difficultyStats.easy.totalCorrect += stat.easy_correct || 0;
+      difficultyStats.medium.totalAnswered += stat.medium_total || 0;
+      difficultyStats.medium.totalCorrect += stat.medium_correct || 0;
+      difficultyStats.hard.totalAnswered += stat.hard_total || 0;
+      difficultyStats.hard.totalCorrect += stat.hard_correct || 0;
+      totalQuestionsAnswered += stat.total_questions || 0;
+      totalCorrectAnswers += stat.correct_answers || 0;
+    });
+
+    // Calculate average scores for difficulty
+    Object.keys(difficultyStats).forEach(diff => {
+      const d = diff as DifficultyLevel;
+      difficultyStats[d].averageScore = difficultyStats[d].totalAnswered > 0
+        ? Math.round((difficultyStats[d].totalCorrect / difficultyStats[d].totalAnswered) * 100)
+        : 0;
+    });
+
+    // Aggregate category stats from session_stats
     const categoryStats: Record<string, { totalAnswered: number; totalCorrect: number; averageScore: number }> = {};
-    questions.forEach(q => {
-      if (!categoryStats[q.category]) {
-        categoryStats[q.category] = { totalAnswered: 0, totalCorrect: 0, averageScore: 0 };
-      }
-      categoryStats[q.category].totalAnswered += q.timesAnswered || 0;
-      categoryStats[q.category].totalCorrect += q.timesCorrect || 0;
+    allStats.forEach(stat => {
+      const catStats = stat.category_stats as Record<string, { totalAnswered: number; totalCorrect: number }> || {};
+      Object.entries(catStats).forEach(([cat, data]) => {
+        if (!categoryStats[cat]) {
+          categoryStats[cat] = { totalAnswered: 0, totalCorrect: 0, averageScore: 0 };
+        }
+        categoryStats[cat].totalAnswered += data.totalAnswered || 0;
+        categoryStats[cat].totalCorrect += data.totalCorrect || 0;
+      });
     });
 
     Object.keys(categoryStats).forEach(cat => {
@@ -548,26 +642,7 @@ export const supabaseStorage = {
         : 0;
     });
 
-    // Difficulty stats
-    const difficultyStats: Record<DifficultyLevel, { totalAnswered: number; totalCorrect: number; averageScore: number }> = {
-      easy: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
-      medium: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
-      hard: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
-    };
-
-    questions.forEach(q => {
-      const diff = q.difficulty || "medium";
-      difficultyStats[diff].totalAnswered += q.timesAnswered || 0;
-      difficultyStats[diff].totalCorrect += q.timesCorrect || 0;
-    });
-
-    Object.keys(difficultyStats).forEach(diff => {
-      const d = diff as DifficultyLevel;
-      difficultyStats[d].averageScore = difficultyStats[d].totalAnswered > 0
-        ? Math.round((difficultyStats[d].totalCorrect / difficultyStats[d].totalAnswered) * 100)
-        : 0;
-    });
-
+    // Calculate overall stats
     const totalTimeSpent = completedSessions.reduce((sum, s) => sum + (s.total_time || 0), 0);
     const averageScore = completedSessions.length > 0
       ? Math.round(completedSessions.reduce((sum, s) => sum + (s.score || 0), 0) / completedSessions.length)
@@ -578,7 +653,7 @@ export const supabaseStorage = {
 
     const recentSessions: TrainingSession[] = completedSessions.slice(0, 10).map(s => ({
       id: s.id,
-      questions: [], // We don't need full questions for stats
+      questions: [],
       currentIndex: 0,
       answers: [],
       startedAt: new Date(s.created_at).getTime(),
@@ -588,38 +663,19 @@ export const supabaseStorage = {
       totalTime: s.total_time,
     }));
 
-    // Stats par type de question
+    // Question type stats
     const questionTypeStats: Record<string, { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }> = {
-      "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      "standard": {
+        totalAnswered: totalQuestionsAnswered,
+        totalCorrect: totalCorrectAnswers,
+        averageScore: totalQuestionsAnswered > 0 ? Math.round((totalCorrectAnswers / totalQuestionsAnswered) * 100) : 0,
+        averageTime: totalQuestionsAnswered > 0 ? Math.round(totalTimeSpent / totalQuestionsAnswered) : 0
+      },
       "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
     };
 
-    let standardTime = 0, doubleSeriesTime = 0;
-    questions.forEach(q => {
-      const type = q.questionType || "standard";
-      questionTypeStats[type].totalAnswered += q.timesAnswered || 0;
-      questionTypeStats[type].totalCorrect += q.timesCorrect || 0;
-      if (type === "standard") {
-        standardTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
-      } else {
-        doubleSeriesTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
-      }
-    });
-
-    Object.keys(questionTypeStats).forEach(type => {
-      questionTypeStats[type].averageScore = questionTypeStats[type].totalAnswered > 0
-        ? Math.round((questionTypeStats[type].totalCorrect / questionTypeStats[type].totalAnswered) * 100)
-        : 0;
-    });
-    questionTypeStats["standard"].averageTime = questionTypeStats["standard"].totalAnswered > 0
-      ? Math.round(standardTime / questionTypeStats["standard"].totalAnswered)
-      : 0;
-    questionTypeStats["double-series"].averageTime = questionTypeStats["double-series"].totalAnswered > 0
-      ? Math.round(doubleSeriesTime / questionTypeStats["double-series"].totalAnswered)
-      : 0;
-
     return {
-      totalQuestions: questions.length,
+      totalQuestions: totalQuestionsAnswered,
       totalSessions: completedSessions.length,
       totalTimeSpent,
       averageScore,
