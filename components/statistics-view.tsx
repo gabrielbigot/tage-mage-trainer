@@ -51,6 +51,14 @@ export function StatisticsView() {
   const loadStats = async () => {
     const statistics = await storage.getStatistics();
     setStats(statistics);
+
+    // Use tag stats from getStatistics if available
+    if (statistics.tagStats && statistics.tagStats.length > 0) {
+      setTagStats(statistics.tagStats.map(t => ({
+        ...t,
+        questionCount: 0, // We don't have this from session_stats
+      })));
+    }
   };
 
   const loadAdditionalStats = async () => {
@@ -59,31 +67,37 @@ export function StatisticsView() {
     const reviewStats = getReviewStats(questions);
     setSRStats(reviewStats);
 
-    // Calculate tag stats
+    // Calculate tag stats from questions only as fallback (if not already set from getStatistics)
+    // This is mainly for counting questionCount per tag
     const tagMap = new Map<string, { totalAnswered: number; totalCorrect: number; questionCount: number }>();
     questions.forEach((q: Question) => {
       const tags = q.tags || [];
       tags.forEach((tag: string) => {
         const existing = tagMap.get(tag) || { totalAnswered: 0, totalCorrect: 0, questionCount: 0 };
-        existing.totalAnswered += q.timesAnswered || 0;
-        existing.totalCorrect += q.timesCorrect || 0;
         existing.questionCount += 1;
         tagMap.set(tag, existing);
       });
     });
 
-    const tagStatsArray: TagStats[] = Array.from(tagMap.entries())
-      .map(([tag, data]) => ({
-        tag,
-        totalAnswered: data.totalAnswered,
-        totalCorrect: data.totalCorrect,
-        averageScore: data.totalAnswered > 0 ? Math.round((data.totalCorrect / data.totalAnswered) * 100) : 0,
-        questionCount: data.questionCount,
-      }))
-      .filter(t => t.totalAnswered > 0)
-      .sort((a, b) => b.totalAnswered - a.totalAnswered);
-
-    setTagStats(tagStatsArray);
+    // Merge question counts with existing tag stats
+    setTagStats(prev => {
+      if (prev.length === 0) {
+        // No stats from getStatistics, use questions (but likely no answers recorded)
+        return Array.from(tagMap.entries())
+          .map(([tag, data]) => ({
+            tag,
+            totalAnswered: 0,
+            totalCorrect: 0,
+            averageScore: 0,
+            questionCount: data.questionCount,
+          }));
+      }
+      // Merge question counts into existing stats
+      return prev.map(stat => ({
+        ...stat,
+        questionCount: tagMap.get(stat.tag)?.questionCount || 0,
+      }));
+    });
 
     // Calculate question type stats display
     const typeMap = new Map<string, { totalAnswered: number; totalCorrect: number; totalTime: number; questionCount: number }>();

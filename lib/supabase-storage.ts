@@ -644,6 +644,31 @@ export const supabaseStorage = {
         : 0;
     });
 
+    // Aggregate tag stats from session_stats
+    const tagStatsMap: Record<string, { totalAnswered: number; totalCorrect: number }> = {};
+    allStats.forEach(stat => {
+      const tStats = stat.tag_stats as Record<string, { totalAnswered: number; totalCorrect: number }> || {};
+      Object.entries(tStats).forEach(([tag, data]) => {
+        if (!tagStatsMap[tag]) {
+          tagStatsMap[tag] = { totalAnswered: 0, totalCorrect: 0 };
+        }
+        tagStatsMap[tag].totalAnswered += data.totalAnswered || 0;
+        tagStatsMap[tag].totalCorrect += data.totalCorrect || 0;
+      });
+    });
+
+    const tagStats = Object.entries(tagStatsMap)
+      .map(([tag, data]) => ({
+        tag,
+        totalAnswered: data.totalAnswered,
+        totalCorrect: data.totalCorrect,
+        averageScore: data.totalAnswered > 0
+          ? Math.round((data.totalCorrect / data.totalAnswered) * 100)
+          : 0,
+      }))
+      .filter(t => t.totalAnswered > 0)
+      .sort((a, b) => b.totalAnswered - a.totalAnswered);
+
     // Calculate overall stats
     const totalTimeSpent = completedSessions.reduce((sum, s) => sum + (s.total_time || 0), 0);
     const averageScore = completedSessions.length > 0
@@ -689,6 +714,7 @@ export const supabaseStorage = {
       difficultyStats,
       questionTypeStats: questionTypeStats as Record<"standard" | "double-series", { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }>,
       streak: await this.getStreak(),
+      tagStats,
     };
   },
 

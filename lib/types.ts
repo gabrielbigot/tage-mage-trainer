@@ -115,6 +115,13 @@ export interface Statistics {
     averageTime: number;
   }>;
   streak?: StreakData;
+  // Tag stats
+  tagStats?: Array<{
+    tag: string;
+    totalAnswered: number;
+    totalCorrect: number;
+    averageScore: number;
+  }>;
   // Sprint mode stats
   sprintStats?: {
     totalSprints: number;
