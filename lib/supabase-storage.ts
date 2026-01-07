@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
-import { Question, TrainingSession, QuestionResult, Statistics, DifficultyLevel, SessionMode } from "./types";
+import { Question, TrainingSession, QuestionResult, Statistics, DifficultyLevel, SessionMode, SpacedRepetitionData, DailyChallenge, StreakData, QuestionType } from "./types";
 
 export const supabaseStorage = {
   // Image upload/delete
@@ -70,12 +70,17 @@ export const supabaseStorage = {
     }
 
     return (data || []).map(q => ({
-      ...q,
+      id: q.id,
+      category: q.category,
+      question: q.question,
       createdAt: new Date(q.created_at).getTime(),
       options: q.options as string[],
       correctAnswer: q.correct_answer,
+      explanation: q.explanation,
       tags: q.tags || undefined,
+      notes: q.notes || undefined,
       difficulty: q.difficulty as DifficultyLevel | undefined,
+      questionType: (q.question_type || "standard") as QuestionType,
       timesAnswered: q.times_answered || undefined,
       timesCorrect: q.times_correct || undefined,
       timesIncorrect: q.times_incorrect || undefined,
@@ -83,6 +88,13 @@ export const supabaseStorage = {
       averageTimeSpent: q.average_time_spent || undefined,
       isFavorite: q.is_favorite || false,
       imageUrl: q.image_url || undefined,
+      spacedRepetition: q.ease_factor ? {
+        easeFactor: q.ease_factor,
+        interval: q.sr_interval || 0,
+        repetitions: q.sr_repetitions || 0,
+        nextReviewDate: q.next_review_date ? new Date(q.next_review_date).getTime() : Date.now(),
+        lastReviewDate: q.last_review_date ? new Date(q.last_review_date).getTime() : undefined,
+      } : undefined,
     }));
   },
 
@@ -102,6 +114,7 @@ export const supabaseStorage = {
         correct_answer: question.correctAnswer,
         explanation: question.explanation,
         difficulty: question.difficulty,
+        question_type: question.questionType || "standard",
         tags: question.tags,
         notes: question.notes,
         is_favorite: question.isFavorite,
@@ -124,6 +137,7 @@ export const supabaseStorage = {
       explanation: data.explanation,
       createdAt: new Date(data.created_at).getTime(),
       difficulty: data.difficulty as DifficultyLevel | undefined,
+      questionType: (data.question_type || "standard") as QuestionType,
       tags: data.tags || undefined,
       notes: data.notes || undefined,
       isFavorite: data.is_favorite || false,
@@ -134,13 +148,14 @@ export const supabaseStorage = {
   async updateQuestion(id: string, updates: Partial<Question>): Promise<void> {
     const supabase = createClient();
 
-    const dbUpdates: any = {};
+    const dbUpdates: Record<string, unknown> = {};
     if (updates.category) dbUpdates.category = updates.category;
     if (updates.question) dbUpdates.question = updates.question;
     if (updates.options) dbUpdates.options = updates.options;
     if (updates.correctAnswer !== undefined) dbUpdates.correct_answer = updates.correctAnswer;
     if (updates.explanation !== undefined) dbUpdates.explanation = updates.explanation;
     if (updates.difficulty) dbUpdates.difficulty = updates.difficulty;
+    if (updates.questionType) dbUpdates.question_type = updates.questionType;
     if (updates.tags) dbUpdates.tags = updates.tags;
     if (updates.notes !== undefined) dbUpdates.notes = updates.notes;
     if (updates.isFavorite !== undefined) dbUpdates.is_favorite = updates.isFavorite;
@@ -150,6 +165,17 @@ export const supabaseStorage = {
     if (updates.timesIncorrect !== undefined) dbUpdates.times_incorrect = updates.timesIncorrect;
     if (updates.lastAnsweredAt) dbUpdates.last_answered_at = new Date(updates.lastAnsweredAt).toISOString();
     if (updates.averageTimeSpent !== undefined) dbUpdates.average_time_spent = updates.averageTimeSpent;
+
+    // Spaced repetition data
+    if (updates.spacedRepetition) {
+      dbUpdates.ease_factor = updates.spacedRepetition.easeFactor;
+      dbUpdates.sr_interval = updates.spacedRepetition.interval;
+      dbUpdates.sr_repetitions = updates.spacedRepetition.repetitions;
+      dbUpdates.next_review_date = new Date(updates.spacedRepetition.nextReviewDate).toISOString();
+      if (updates.spacedRepetition.lastReviewDate) {
+        dbUpdates.last_review_date = new Date(updates.spacedRepetition.lastReviewDate).toISOString();
+      }
+    }
 
     const { error } = await supabase
       .from("questions")
@@ -654,5 +680,262 @@ export const supabaseStorage = {
         message: "Erreur lors de l'import : format JSON invalide",
       };
     }
+  },
+
+  // Daily Challenges
+  async getDailyChallenge(date?: string): Promise<DailyChallenge | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return null;
+
+    const challengeDate = date || new Date().toISOString().split('T')[0];
+
+    const { data, error } = await supabase
+      .from("daily_challenges")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("challenge_date", challengeDate)
+      .single();
+
+    if (error || !data) return null;
+
+    return {
+      id: data.id,
+      date: data.challenge_date,
+      questions: [], // Questions are generated dynamically
+      targetScore: 70,
+      completed: !!data.completed_at,
+      score: data.score,
+      timeSpent: data.total_time,
+      completedAt: data.completed_at ? new Date(data.completed_at).getTime() : undefined,
+    };
+  },
+
+  async saveDailyChallenge(challenge: DailyChallenge): Promise<void> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("daily_challenges")
+      .upsert({
+        user_id: user.id,
+        challenge_date: challenge.date,
+        score: challenge.score,
+        total_questions: challenge.questions.length,
+        correct_answers: challenge.score ? Math.round((challenge.score / 100) * challenge.questions.length) : 0,
+        total_time: challenge.timeSpent,
+        completed_at: challenge.completed ? new Date().toISOString() : null,
+      }, {
+        onConflict: 'user_id,challenge_date',
+      });
+
+    if (error) {
+      console.error("Error saving daily challenge:", error);
+    }
+  },
+
+  async getDailyChallengeHistory(limit: number = 30): Promise<DailyChallenge[]> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from("daily_challenges")
+      .select("*")
+      .eq("user_id", user.id)
+      .not("completed_at", "is", null)
+      .order("challenge_date", { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error("Error fetching challenge history:", error);
+      return [];
+    }
+
+    return (data || []).map(d => ({
+      id: d.id,
+      date: d.challenge_date,
+      questions: [],
+      targetScore: 70,
+      completed: true,
+      score: d.score,
+      timeSpent: d.total_time,
+      completedAt: d.completed_at ? new Date(d.completed_at).getTime() : undefined,
+    }));
+  },
+
+  // Get questions due for spaced repetition review
+  async getQuestionsForReview(): Promise<Question[]> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("questions")
+      .select("*")
+      .eq("user_id", user.id)
+      .not("next_review_date", "is", null)
+      .lte("next_review_date", now)
+      .order("next_review_date", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching review questions:", error);
+      return [];
+    }
+
+    return (data || []).map(q => ({
+      id: q.id,
+      category: q.category,
+      question: q.question,
+      createdAt: new Date(q.created_at).getTime(),
+      options: q.options as string[],
+      correctAnswer: q.correct_answer,
+      explanation: q.explanation,
+      tags: q.tags || undefined,
+      notes: q.notes || undefined,
+      difficulty: q.difficulty as DifficultyLevel | undefined,
+      questionType: (q.question_type || "standard") as QuestionType,
+      timesAnswered: q.times_answered || undefined,
+      timesCorrect: q.times_correct || undefined,
+      timesIncorrect: q.times_incorrect || undefined,
+      lastAnsweredAt: q.last_answered_at ? new Date(q.last_answered_at).getTime() : undefined,
+      averageTimeSpent: q.average_time_spent || undefined,
+      isFavorite: q.is_favorite || false,
+      imageUrl: q.image_url || undefined,
+      spacedRepetition: q.ease_factor ? {
+        easeFactor: q.ease_factor,
+        interval: q.sr_interval || 0,
+        repetitions: q.sr_repetitions || 0,
+        nextReviewDate: q.next_review_date ? new Date(q.next_review_date).getTime() : Date.now(),
+        lastReviewDate: q.last_review_date ? new Date(q.last_review_date).getTime() : undefined,
+      } : undefined,
+    }));
+  },
+
+  // Get tag statistics
+  async getTagStatistics(): Promise<Array<{
+    tag: string;
+    questionCount: number;
+    totalAnswered: number;
+    totalCorrect: number;
+    averageScore: number;
+  }>> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from("tag_statistics")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error fetching tag statistics:", error);
+      return [];
+    }
+
+    return (data || []).map(t => ({
+      tag: t.tag,
+      questionCount: t.question_count || 0,
+      totalAnswered: t.total_answered || 0,
+      totalCorrect: t.total_correct || 0,
+      averageScore: t.average_score || 0,
+    }));
+  },
+
+  // Use database function for comprehensive statistics
+  async getStatisticsOptimized(): Promise<Statistics & { tagStats?: Array<{ tag: string; questionCount: number; totalAnswered: number; totalCorrect: number; averageScore: number }> }> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        totalQuestions: 0,
+        totalSessions: 0,
+        totalTimeSpent: 0,
+        averageScore: 0,
+        bestScore: 0,
+        recentSessions: [],
+        categoryStats: {},
+        difficultyStats: {
+          easy: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+          medium: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+          hard: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+        },
+        questionTypeStats: {
+          "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+          "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+        },
+        tagStats: [],
+      };
+    }
+
+    // Try to use the database function for optimized stats
+    const { data, error } = await supabase.rpc("get_user_statistics", {
+      p_user_id: user.id,
+    });
+
+    if (error || !data) {
+      console.error("Error fetching optimized statistics:", error);
+      // Fallback to regular getStatistics
+      const stats = await this.getStatistics();
+      return { ...stats, tagStats: [] };
+    }
+
+    // Get recent sessions separately (the function doesn't return them)
+    const { data: sessions } = await supabase
+      .from("training_sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .limit(10);
+
+    const recentSessions: TrainingSession[] = (sessions || []).map(s => ({
+      id: s.id,
+      questions: [],
+      currentIndex: 0,
+      answers: [],
+      startedAt: new Date(s.created_at).getTime(),
+      completedAt: s.completed_at ? new Date(s.completed_at).getTime() : undefined,
+      mode: s.mode as SessionMode,
+      score: s.score,
+      totalTime: s.total_time,
+    }));
+
+    return {
+      totalQuestions: data.totalQuestions || 0,
+      totalSessions: data.totalSessions || 0,
+      totalTimeSpent: data.totalTimeSpent || 0,
+      averageScore: data.averageScore || 0,
+      bestScore: data.bestScore || 0,
+      recentSessions,
+      categoryStats: data.categoryStats || {},
+      difficultyStats: data.difficultyStats || {
+        easy: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+        medium: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+        hard: { totalAnswered: 0, totalCorrect: 0, averageScore: 0 },
+      },
+      questionTypeStats: data.questionTypeStats || {
+        "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+        "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      },
+      streak: data.streak ? {
+        current: data.streak.current || 0,
+        longest: data.streak.longest || 0,
+        lastSessionDate: data.streak.lastSessionDate,
+        totalDaysActive: data.streak.totalDaysActive || 0,
+        weeklyActivity: data.streak.weeklyActivity || [false, false, false, false, false, false, false],
+      } : undefined,
+      tagStats: data.tagStats || [],
+    };
   },
 };
