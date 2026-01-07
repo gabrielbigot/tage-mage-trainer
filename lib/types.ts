@@ -85,6 +85,8 @@ export interface TrainingSession {
   mode?: SessionMode;
   score?: number;
   totalTime?: number; // in seconds
+  totalQuestions?: number; // Total questions in session
+  correctAnswers?: number; // Correct answers count
   results?: QuestionResult[];
   categoryScores?: Record<string, { correct: number; total: number }>;
 }

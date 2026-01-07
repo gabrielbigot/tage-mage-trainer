@@ -612,7 +612,7 @@ export function StatisticsView() {
                         </span>
                         <div className="h-4 w-px bg-border/50" />
                         <span className="text-sm text-muted-foreground">
-                          {session.questions.length} questions
+                          {session.totalQuestions || session.questions.length} questions
                         </span>
                         {session.mode && (
                           <>

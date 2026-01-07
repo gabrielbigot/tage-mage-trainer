@@ -365,6 +365,8 @@ export const supabaseStorage = {
       .update({
         score,
         total_time: totalTime,
+        total_questions: results.length,
+        correct_answers: correctAnswers,
         completed_at: new Date().toISOString(),
       })
       .eq("id", sessionId);
@@ -661,6 +663,8 @@ export const supabaseStorage = {
       mode: s.mode as SessionMode,
       score: s.score,
       totalTime: s.total_time,
+      totalQuestions: s.total_questions || 0,
+      correctAnswers: s.correct_answers || 0,
     }));
 
     // Question type stats
