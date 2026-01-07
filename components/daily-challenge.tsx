@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Question, QuestionResult, DailyChallenge as DailyChallengeType, StreakData } from "@/lib/types";
 import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { createClient } from "@/lib/supabase/client";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
 import {
   Calendar,
@@ -87,16 +89,34 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
 
   const loadDailyChallenge = async () => {
     try {
+      // Check if user is authenticated for Supabase
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      const useSupabase = !!user;
+
       // Load streak data
-      const storedStreak = await loadStreak();
+      const storedStreak = await loadStreak(useSupabase);
       setStreak(storedStreak);
 
       // Load or create today's challenge
       const todayStr = getTodayString();
-      const savedChallenge = localStorage.getItem(`daily-challenge-${todayStr}`);
+
+      // Try Supabase first if authenticated
+      let savedChallenge: DailyChallengeType | null = null;
+      if (useSupabase) {
+        savedChallenge = await supabaseStorage.getDailyChallenge(todayStr);
+      }
+
+      // Fallback to localStorage
+      if (!savedChallenge) {
+        const localChallenge = localStorage.getItem(`daily-challenge-${todayStr}`);
+        if (localChallenge) {
+          savedChallenge = JSON.parse(localChallenge) as DailyChallengeType;
+        }
+      }
 
       if (savedChallenge) {
-        const parsed = JSON.parse(savedChallenge) as DailyChallengeType;
+        const parsed = savedChallenge;
         setChallenge(parsed);
 
         if (parsed.completed) {
@@ -138,7 +158,11 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
           completed: false,
         };
 
+        // Save to both localStorage (fallback) and Supabase (if authenticated)
         localStorage.setItem(`daily-challenge-${todayStr}`, JSON.stringify(newChallenge));
+        if (useSupabase) {
+          await supabaseStorage.saveDailyChallenge(newChallenge);
+        }
         setChallenge(newChallenge);
         setQuestions(selectedQuestions);
         setAnswers(new Array(selectedQuestions.length).fill(null));
@@ -151,14 +175,29 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
     }
   };
 
-  const loadStreak = async (): Promise<StreakData> => {
+  const loadStreak = async (useSupabase: boolean): Promise<StreakData> => {
+    const defaultStreak: StreakData = { current: 0, longest: 0, totalDaysActive: 0, weeklyActivity: Array(7).fill(false) };
+
     if (typeof window === "undefined") {
-      return { current: 0, longest: 0, totalDaysActive: 0, weeklyActivity: Array(7).fill(false) };
+      return defaultStreak;
     }
 
+    // Try Supabase first if authenticated
+    if (useSupabase) {
+      try {
+        const supabaseStreak = await supabaseStorage.getStreak();
+        if (supabaseStreak && (supabaseStreak.current > 0 || supabaseStreak.longest > 0)) {
+          return supabaseStreak;
+        }
+      } catch (error) {
+        console.error("Error loading streak from Supabase:", error);
+      }
+    }
+
+    // Fallback to localStorage
     const saved = localStorage.getItem("daily-challenge-streak");
     if (!saved) {
-      return { current: 0, longest: 0, totalDaysActive: 0, weeklyActivity: Array(7).fill(false) };
+      return defaultStreak;
     }
 
     try {
@@ -178,7 +217,7 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
 
       return data;
     } catch {
-      return { current: 0, longest: 0, totalDaysActive: 0, weeklyActivity: Array(7).fill(false) };
+      return defaultStreak;
     }
   };
 
@@ -245,6 +284,11 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
     const score = Math.round((correctCount / questions.length) * 100);
     const totalTime = Math.round((Date.now() - sessionStartTime) / 1000);
 
+    // Check if user is authenticated for Supabase
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const useSupabase = !!user;
+
     // Update challenge
     const updatedChallenge: DailyChallengeType = {
       ...challenge!,
@@ -255,7 +299,12 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
     };
 
     setChallenge(updatedChallenge);
+
+    // Save to localStorage (fallback) and Supabase (if authenticated)
     localStorage.setItem(`daily-challenge-${challenge!.date}`, JSON.stringify(updatedChallenge));
+    if (useSupabase) {
+      await supabaseStorage.saveDailyChallenge(updatedChallenge);
+    }
 
     // Update streak
     const today = getTodayString();
@@ -273,7 +322,7 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
     setStreak(newStreak);
     saveStreak(newStreak);
 
-    // Save to main statistics
+    // Save to main statistics (this also updates streak in Supabase via the trigger)
     const sessionId = await storage.createSession(questions, "daily-challenge");
     await storage.completeSession(sessionId, finalResults, totalTime);
 

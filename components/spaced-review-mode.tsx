@@ -3,8 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Question, QuestionResult } from "@/lib/types";
+import { Question, QuestionResult, SpacedRepetitionData } from "@/lib/types";
 import { storage } from "@/lib/storage";
+import { supabaseStorage } from "@/lib/supabase-storage";
+import { createClient } from "@/lib/supabase/client";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
 import {
   calculateSM2,
@@ -158,14 +160,26 @@ export function SpacedReviewMode({ onBack }: SpacedReviewModeProps) {
     }
   };
 
-  // Save SR data to localStorage
-  const saveSRData = (questionId: string, srData: any) => {
+  // Save SR data to localStorage and Supabase
+  const saveSRData = async (questionId: string, srData: SpacedRepetitionData) => {
     if (typeof window === "undefined") return;
 
+    // Save to localStorage (fallback)
     const saved = localStorage.getItem("spaced-repetition-data");
     const data = saved ? JSON.parse(saved) : {};
     data[questionId] = srData;
     localStorage.setItem("spaced-repetition-data", JSON.stringify(data));
+
+    // Save to Supabase if authenticated
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabaseStorage.updateQuestion(questionId, { spacedRepetition: srData });
+      }
+    } catch (error) {
+      console.error("Error saving SR data to Supabase:", error);
+    }
   };
 
   // Finish review session
