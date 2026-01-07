@@ -137,17 +137,14 @@ export function SpacedReviewMode({ onBack }: SpacedReviewModeProps) {
 
     setResults((prev) => [...prev, result]);
 
-    // Update question with new SR data (store locally for now)
-    const updatedQuestion = {
-      ...currentQuestion,
-      spacedRepetition: {
-        ...newSRData,
-        lastReviewDate: Date.now(),
-      },
+    // Update question with new SR data
+    const updatedSRData = {
+      ...newSRData,
+      lastReviewDate: Date.now(),
     };
 
-    // Save SR data to localStorage
-    saveSRData(currentQuestion.id, updatedQuestion.spacedRepetition);
+    // Save SR data to Supabase (includes answer stats)
+    saveSRData(currentQuestion.id, updatedSRData, isCorrect, timeSpent);
 
     // Move to next question or finish
     if (currentIndex < reviewQuestions.length - 1) {
@@ -160,22 +157,22 @@ export function SpacedReviewMode({ onBack }: SpacedReviewModeProps) {
     }
   };
 
-  // Save SR data to localStorage and Supabase
-  const saveSRData = async (questionId: string, srData: SpacedRepetitionData) => {
+  // Save SR data to Supabase (user_question_stats table)
+  const saveSRData = async (questionId: string, srData: SpacedRepetitionData, isCorrect: boolean, timeSpent: number) => {
     if (typeof window === "undefined") return;
 
-    // Save to localStorage (fallback)
+    // Save to localStorage (fallback for non-authenticated users)
     const saved = localStorage.getItem("spaced-repetition-data");
     const data = saved ? JSON.parse(saved) : {};
     data[questionId] = srData;
     localStorage.setItem("spaced-repetition-data", JSON.stringify(data));
 
-    // Save to Supabase if authenticated
+    // Save to Supabase if authenticated (updates both answer stats and SR data)
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabaseStorage.updateQuestion(questionId, { spacedRepetition: srData });
+        await supabaseStorage.updateQuestionStats(questionId, isCorrect, timeSpent, srData);
       }
     } catch (error) {
       console.error("Error saving SR data to Supabase:", error);

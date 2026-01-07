@@ -464,6 +464,15 @@ export const supabaseStorage = {
       console.error("Error inserting question results:", resultsError);
     }
 
+    // Update per-question cumulative stats
+    for (const result of results) {
+      await this.updateQuestionStats(
+        result.questionId,
+        result.isCorrect,
+        result.timeSpent || 0
+      );
+    }
+
     // Update streak
     await this.updateStreak();
   },
@@ -903,6 +912,154 @@ export const supabaseStorage = {
         lastReviewDate: q.last_review_date ? new Date(q.last_review_date).getTime() : undefined,
       } : undefined,
     }));
+  },
+
+  // Get all question stats for the current user
+  async getUserQuestionStats(): Promise<Map<string, {
+    timesAnswered: number;
+    timesCorrect: number;
+    timesIncorrect: number;
+    lastAnsweredAt?: number;
+    averageTimeSpent?: number;
+    spacedRepetition?: SpacedRepetitionData;
+  }>> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return new Map();
+
+    const { data, error } = await supabase
+      .from("user_question_stats")
+      .select("*")
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Error fetching user question stats:", error);
+      return new Map();
+    }
+
+    const statsMap = new Map<string, {
+      timesAnswered: number;
+      timesCorrect: number;
+      timesIncorrect: number;
+      lastAnsweredAt?: number;
+      averageTimeSpent?: number;
+      spacedRepetition?: SpacedRepetitionData;
+    }>();
+
+    (data || []).forEach(stat => {
+      statsMap.set(stat.question_id, {
+        timesAnswered: stat.times_answered || 0,
+        timesCorrect: stat.times_correct || 0,
+        timesIncorrect: stat.times_incorrect || 0,
+        lastAnsweredAt: stat.last_answered_at ? new Date(stat.last_answered_at).getTime() : undefined,
+        averageTimeSpent: stat.average_time_spent || undefined,
+        spacedRepetition: stat.ease_factor ? {
+          easeFactor: stat.ease_factor,
+          interval: stat.sr_interval || 0,
+          repetitions: stat.sr_repetitions || 0,
+          nextReviewDate: stat.next_review_date ? new Date(stat.next_review_date).getTime() : Date.now(),
+          lastReviewDate: stat.last_review_date ? new Date(stat.last_review_date).getTime() : undefined,
+        } : undefined,
+      });
+    });
+
+    return statsMap;
+  },
+
+  // Update question stats after answering
+  async updateQuestionStats(
+    questionId: string,
+    isCorrect: boolean,
+    timeSpent: number,
+    spacedRepetition?: SpacedRepetitionData
+  ): Promise<void> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    // Use the upsert function
+    const { error } = await supabase.rpc("upsert_question_stats", {
+      p_user_id: user.id,
+      p_question_id: questionId,
+      p_is_correct: isCorrect,
+      p_time_spent: timeSpent,
+      p_ease_factor: spacedRepetition?.easeFactor || null,
+      p_sr_interval: spacedRepetition?.interval || null,
+      p_sr_repetitions: spacedRepetition?.repetitions || null,
+      p_next_review_date: spacedRepetition?.nextReviewDate
+        ? new Date(spacedRepetition.nextReviewDate).toISOString()
+        : null,
+      p_last_review_date: spacedRepetition?.lastReviewDate
+        ? new Date(spacedRepetition.lastReviewDate).toISOString()
+        : null,
+    });
+
+    if (error) {
+      console.error("Error updating question stats:", error);
+
+      // Fallback: try direct upsert if function doesn't exist
+      const { data: existing } = await supabase
+        .from("user_question_stats")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("question_id", questionId)
+        .single();
+
+      if (existing) {
+        // Update existing
+        const newTimesAnswered = (existing.times_answered || 0) + 1;
+        const newTimesCorrect = (existing.times_correct || 0) + (isCorrect ? 1 : 0);
+        const newTimesIncorrect = (existing.times_incorrect || 0) + (isCorrect ? 0 : 1);
+        const newAvgTime = existing.times_answered > 0 && existing.average_time_spent > 0
+          ? (existing.average_time_spent * existing.times_answered + timeSpent) / newTimesAnswered
+          : timeSpent;
+
+        await supabase
+          .from("user_question_stats")
+          .update({
+            times_answered: newTimesAnswered,
+            times_correct: newTimesCorrect,
+            times_incorrect: newTimesIncorrect,
+            last_answered_at: new Date().toISOString(),
+            average_time_spent: newAvgTime,
+            ...(spacedRepetition && {
+              ease_factor: spacedRepetition.easeFactor,
+              sr_interval: spacedRepetition.interval,
+              sr_repetitions: spacedRepetition.repetitions,
+              next_review_date: new Date(spacedRepetition.nextReviewDate).toISOString(),
+              last_review_date: spacedRepetition.lastReviewDate
+                ? new Date(spacedRepetition.lastReviewDate).toISOString()
+                : null,
+            }),
+          })
+          .eq("user_id", user.id)
+          .eq("question_id", questionId);
+      } else {
+        // Insert new
+        await supabase
+          .from("user_question_stats")
+          .insert({
+            user_id: user.id,
+            question_id: questionId,
+            times_answered: 1,
+            times_correct: isCorrect ? 1 : 0,
+            times_incorrect: isCorrect ? 0 : 1,
+            last_answered_at: new Date().toISOString(),
+            average_time_spent: timeSpent,
+            ...(spacedRepetition && {
+              ease_factor: spacedRepetition.easeFactor,
+              sr_interval: spacedRepetition.interval,
+              sr_repetitions: spacedRepetition.repetitions,
+              next_review_date: new Date(spacedRepetition.nextReviewDate).toISOString(),
+              last_review_date: spacedRepetition.lastReviewDate
+                ? new Date(spacedRepetition.lastReviewDate).toISOString()
+                : null,
+            }),
+          });
+      }
+    }
   },
 
   // Get tag statistics

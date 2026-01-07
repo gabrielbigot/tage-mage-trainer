@@ -29,23 +29,30 @@ export const hybridStorage = {
     // First try to get questions from Notion
     const notionQuestions = await notionStorage.getQuestions();
 
-    // If user is authenticated with Supabase, merge with SR data from Supabase
+    // If user is authenticated with Supabase, merge with question stats from Supabase
     if (await isSupabaseAuthenticated()) {
       try {
-        const supabaseQuestions = await supabaseStorage.getQuestions();
-        const srDataMap = new Map(
-          supabaseQuestions
-            .filter(q => q.spacedRepetition)
-            .map(q => [q.id, q.spacedRepetition])
-        );
+        // Get per-question stats (times answered, SR data, etc.)
+        const questionStatsMap = await supabaseStorage.getUserQuestionStats();
 
-        // Merge SR data into Notion questions
-        return notionQuestions.map(q => ({
-          ...q,
-          spacedRepetition: srDataMap.get(q.id) || q.spacedRepetition,
-        }));
+        // Merge stats into Notion questions
+        return notionQuestions.map(q => {
+          const stats = questionStatsMap.get(q.id);
+          if (stats) {
+            return {
+              ...q,
+              timesAnswered: stats.timesAnswered,
+              timesCorrect: stats.timesCorrect,
+              timesIncorrect: stats.timesIncorrect,
+              lastAnsweredAt: stats.lastAnsweredAt,
+              averageTimeSpent: stats.averageTimeSpent,
+              spacedRepetition: stats.spacedRepetition || q.spacedRepetition,
+            };
+          }
+          return q;
+        });
       } catch (error) {
-        console.error("Error merging Supabase data:", error);
+        console.error("Error merging Supabase question stats:", error);
       }
     }
 
@@ -57,12 +64,43 @@ export const hybridStorage = {
   },
 
   async updateQuestion(id: string, updates: Partial<Question>): Promise<void> {
-    // Update in Notion for core question data
-    await notionStorage.updateQuestion(id, updates);
+    // Update in Notion for core question data (category, question text, options, etc.)
+    const notionUpdates: Partial<Question> = { ...updates };
+    delete notionUpdates.spacedRepetition;
+    delete notionUpdates.timesAnswered;
+    delete notionUpdates.timesCorrect;
+    delete notionUpdates.timesIncorrect;
+    delete notionUpdates.lastAnsweredAt;
+    delete notionUpdates.averageTimeSpent;
 
-    // If we have SR data updates, also save to Supabase
+    if (Object.keys(notionUpdates).length > 0) {
+      await notionStorage.updateQuestion(id, notionUpdates);
+    }
+
+    // If we have SR data updates, save to user_question_stats in Supabase
     if (updates.spacedRepetition && await isSupabaseAuthenticated()) {
-      await supabaseStorage.updateQuestion(id, { spacedRepetition: updates.spacedRepetition });
+      // Use updateQuestionStats with a neutral answer (won't change times_answered/correct/incorrect)
+      // Actually, for SR-only updates, we need a different approach
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const sr = updates.spacedRepetition;
+        await supabase
+          .from("user_question_stats")
+          .upsert({
+            user_id: user.id,
+            question_id: id,
+            ease_factor: sr.easeFactor,
+            sr_interval: sr.interval,
+            sr_repetitions: sr.repetitions,
+            next_review_date: new Date(sr.nextReviewDate).toISOString(),
+            last_review_date: sr.lastReviewDate
+              ? new Date(sr.lastReviewDate).toISOString()
+              : null,
+          }, {
+            onConflict: 'user_id,question_id',
+          });
+      }
     }
   },
 
@@ -94,8 +132,14 @@ export const hybridStorage = {
     return notionStorage.toggleFavorite(id);
   },
 
-  async getIncorrectQuestions(minErrors?: number): Promise<Question[]> {
-    return notionStorage.getIncorrectQuestions(minErrors);
+  async getIncorrectQuestions(minErrors: number = 1): Promise<Question[]> {
+    // Get all questions with merged stats from Supabase
+    const allQuestions = await this.getQuestions();
+
+    // Filter to only those with errors
+    return allQuestions
+      .filter(q => (q.timesIncorrect || 0) >= minErrors)
+      .sort((a, b) => (b.timesIncorrect || 0) - (a.timesIncorrect || 0));
   },
 
   // ========================================
