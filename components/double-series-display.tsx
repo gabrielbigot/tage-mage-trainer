@@ -25,6 +25,16 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
   const horizontalLeft = horizontalSeries.slice(0, hIndex);
   const horizontalRight = horizontalSeries.slice(hIndex + 1);
 
+  // Calculer la largeur totale de la ligne horizontale
+  const totalHorizontalCells = horizontalLeft.length + 1 + horizontalRight.length;
+
+  // Classes communes pour les cellules
+  const cellBase = "w-12 sm:w-16 h-10 sm:h-12 flex items-center justify-center font-mono text-sm sm:text-lg font-bold";
+  const cellVertical = "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100";
+  const cellVerticalQuestion = "bg-green-500 dark:bg-green-600 text-white animate-pulse";
+  const cellHorizontal = "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100";
+  const cellHorizontalQuestion = "bg-blue-500 dark:bg-blue-600 text-white animate-pulse";
+
   return (
     <div className="my-4 sm:my-6">
       {/* Labels des séries */}
@@ -44,45 +54,56 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
       {/* Conteneur scrollable et centré pour mobile */}
       <div className="overflow-x-auto pb-2">
         <div className="flex justify-center min-w-fit px-2">
-          {/* Structure en croix */}
-          <div className="flex flex-col items-center">
-            {/* Série verticale SUPÉRIEURE */}
-            {verticalTop.map((element, index) => (
-              <div
-                key={`vert-top-${index}`}
-                className={`
-                  w-12 sm:w-16 h-10 sm:h-12
-                  flex items-center justify-center
-                  font-mono text-sm sm:text-lg font-bold
-                  border-l-2 border-r-2 border-t-2 border-gray-300 dark:border-gray-600
-                  ${index === 0 ? "rounded-t-lg" : ""}
-                  ${
-                    element === "?" || element === ""
-                      ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
-                      : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
-                  }
-                `}
-              >
-                {element || "?"}
-              </div>
-            ))}
+          {/* Structure de la matrice */}
+          <div className="flex flex-col">
+            {/* Série verticale SUPÉRIEURE (si elle existe) */}
+            {verticalTop.length > 0 && (
+              <div className="flex">
+                {/* Espace vide pour aligner avec la partie gauche de l'horizontale */}
+                {horizontalLeft.length > 0 && (
+                  <div style={{ width: `${horizontalLeft.length * 48}px` }} className="sm:hidden" />
+                )}
+                {horizontalLeft.length > 0 && (
+                  <div style={{ width: `${horizontalLeft.length * 64}px` }} className="hidden sm:block" />
+                )}
 
-            {/* LIGNE HORIZONTALE avec l'intersection au centre */}
+                {/* Les cellules verticales du haut */}
+                <div className="flex flex-col">
+                  {verticalTop.map((element, index) => (
+                    <div
+                      key={`vert-top-${index}`}
+                      className={`
+                        ${cellBase}
+                        border-l-2 border-r-2 border-t-2 border-gray-300 dark:border-gray-600
+                        ${index === 0 ? "rounded-t-lg" : ""}
+                        ${
+                          element === "?" || element === ""
+                            ? cellVerticalQuestion
+                            : cellVertical
+                        }
+                      `}
+                    >
+                      {element || "?"}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* LIGNE HORIZONTALE avec l'intersection */}
             <div className="flex items-center">
-              {/* Partie gauche de la série horizontale */}
+              {/* Partie gauche de la série horizontale (si elle existe) */}
               {horizontalLeft.map((element, index) => (
                 <div
                   key={`horiz-left-${index}`}
                   className={`
-                    w-12 sm:w-16 h-10 sm:h-12
-                    flex items-center justify-center
-                    font-mono text-sm sm:text-lg font-bold
+                    ${cellBase}
                     border-t-2 border-b-2 border-l-2 border-gray-300 dark:border-gray-600
                     ${index === 0 ? "rounded-l-lg" : ""}
                     ${
                       element === "?" || element === ""
-                        ? "bg-blue-500 dark:bg-blue-600 text-white animate-pulse"
-                        : "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
+                        ? cellHorizontalQuestion
+                        : cellHorizontal
                     }
                   `}
                 >
@@ -93,36 +114,37 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
               {/* INTERSECTION - Le "?" commun aux deux séries */}
               <div
                 className={`
-                  w-12 sm:w-16 h-10 sm:h-12
-                  flex items-center justify-center
-                  font-mono text-sm sm:text-lg font-bold
+                  ${cellBase}
                   border-2 border-yellow-400 dark:border-yellow-500
                   bg-gradient-to-br from-blue-500 to-green-500 dark:from-blue-600 dark:to-green-600
                   text-white animate-pulse
-                  ${horizontalLeft.length === 0 ? "rounded-l-lg" : ""}
-                  ${horizontalRight.length === 0 ? "rounded-r-lg" : ""}
-                  ${verticalTop.length === 0 ? "rounded-t-lg" : ""}
-                  ${verticalBottom.length === 0 ? "rounded-b-lg" : ""}
+                  ${horizontalLeft.length === 0 && verticalTop.length === 0 ? "rounded-tl-lg" : ""}
+                  ${horizontalLeft.length === 0 && verticalBottom.length === 0 ? "rounded-bl-lg" : ""}
+                  ${horizontalRight.length === 0 && verticalTop.length === 0 ? "rounded-tr-lg" : ""}
+                  ${horizontalRight.length === 0 && verticalBottom.length === 0 ? "rounded-br-lg" : ""}
+                  ${horizontalLeft.length === 0 && verticalTop.length > 0 && verticalBottom.length > 0 ? "rounded-l-lg" : ""}
+                  ${horizontalRight.length === 0 && verticalTop.length > 0 && verticalBottom.length > 0 ? "rounded-r-lg" : ""}
+                  ${verticalTop.length === 0 && horizontalLeft.length > 0 && horizontalRight.length > 0 ? "rounded-t-lg" : ""}
+                  ${verticalBottom.length === 0 && horizontalLeft.length > 0 && horizontalRight.length > 0 ? "rounded-b-lg" : ""}
                   ring-2 ring-yellow-400 dark:ring-yellow-500 ring-offset-1 ring-offset-background
+                  z-10
                 `}
               >
                 ?
               </div>
 
-              {/* Partie droite de la série horizontale */}
+              {/* Partie droite de la série horizontale (si elle existe) */}
               {horizontalRight.map((element, index) => (
                 <div
                   key={`horiz-right-${index}`}
                   className={`
-                    w-12 sm:w-16 h-10 sm:h-12
-                    flex items-center justify-center
-                    font-mono text-sm sm:text-lg font-bold
+                    ${cellBase}
                     border-t-2 border-b-2 border-r-2 border-gray-300 dark:border-gray-600
                     ${index === horizontalRight.length - 1 ? "rounded-r-lg" : ""}
                     ${
                       element === "?" || element === ""
-                        ? "bg-blue-500 dark:bg-blue-600 text-white animate-pulse"
-                        : "bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100"
+                        ? cellHorizontalQuestion
+                        : cellHorizontal
                     }
                   `}
                 >
@@ -131,26 +153,39 @@ export function DoubleSeriesDisplay({ data }: DoubleSeriesDisplayProps) {
               ))}
             </div>
 
-            {/* Série verticale INFÉRIEURE */}
-            {verticalBottom.map((element, index) => (
-              <div
-                key={`vert-bottom-${index}`}
-                className={`
-                  w-12 sm:w-16 h-10 sm:h-12
-                  flex items-center justify-center
-                  font-mono text-sm sm:text-lg font-bold
-                  border-l-2 border-r-2 border-b-2 border-gray-300 dark:border-gray-600
-                  ${index === verticalBottom.length - 1 ? "rounded-b-lg" : ""}
-                  ${
-                    element === "?" || element === ""
-                      ? "bg-green-500 dark:bg-green-600 text-white animate-pulse"
-                      : "bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100"
-                  }
-                `}
-              >
-                {element || "?"}
+            {/* Série verticale INFÉRIEURE (si elle existe) */}
+            {verticalBottom.length > 0 && (
+              <div className="flex">
+                {/* Espace vide pour aligner avec la partie gauche de l'horizontale */}
+                {horizontalLeft.length > 0 && (
+                  <div style={{ width: `${horizontalLeft.length * 48}px` }} className="sm:hidden" />
+                )}
+                {horizontalLeft.length > 0 && (
+                  <div style={{ width: `${horizontalLeft.length * 64}px` }} className="hidden sm:block" />
+                )}
+
+                {/* Les cellules verticales du bas */}
+                <div className="flex flex-col">
+                  {verticalBottom.map((element, index) => (
+                    <div
+                      key={`vert-bottom-${index}`}
+                      className={`
+                        ${cellBase}
+                        border-l-2 border-r-2 border-b-2 border-gray-300 dark:border-gray-600
+                        ${index === verticalBottom.length - 1 ? "rounded-b-lg" : ""}
+                        ${
+                          element === "?" || element === ""
+                            ? cellVerticalQuestion
+                            : cellVertical
+                        }
+                      `}
+                    >
+                      {element || "?"}
+                    </div>
+                  ))}
+                </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
