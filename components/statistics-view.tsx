@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { storage } from "@/lib/storage";
-import { Statistics, QuestionType, Question } from "@/lib/types";
+import { Statistics, QuestionType, Question, TrainingSession } from "@/lib/types";
 import { getReviewStats } from "@/lib/spaced-repetition";
-import { Trophy, Target, Clock, TrendingUp, Flame, Calendar, Zap, Brain, BookOpen, GraduationCap, BarChart3, Tag, Layers } from "lucide-react";
+import { Trophy, Target, Clock, TrendingUp, Flame, Calendar, Zap, Brain, BookOpen, GraduationCap, BarChart3, Tag, Layers, ChevronRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface TagStats {
@@ -26,7 +28,10 @@ interface QuestionTypeStatsDisplay {
   questionCount: number;
 }
 
+const SESSIONS_PER_PAGE = 20;
+
 export function StatisticsView() {
+  const router = useRouter();
   const [stats, setStats] = useState<Statistics | null>(null);
   const [srStats, setSRStats] = useState({
     dueToday: 0,
@@ -43,9 +48,16 @@ export function StatisticsView() {
   const [tagStats, setTagStats] = useState<TagStats[]>([]);
   const [questionTypeStatsDisplay, setQuestionTypeStatsDisplay] = useState<QuestionTypeStatsDisplay[]>([]);
 
+  // Sessions pagination state
+  const [displayedSessions, setDisplayedSessions] = useState<TrainingSession[]>([]);
+  const [totalSessions, setTotalSessions] = useState(0);
+  const [hasMoreSessions, setHasMoreSessions] = useState(false);
+  const [loadingMoreSessions, setLoadingMoreSessions] = useState(false);
+
   useEffect(() => {
     loadStats();
     loadAdditionalStats();
+    loadSessions();
   }, []);
 
   const loadStats = async () => {
@@ -58,6 +70,32 @@ export function StatisticsView() {
         ...t,
         questionCount: 0, // We don't have this from session_stats
       })));
+    }
+  };
+
+  const loadSessions = async () => {
+    try {
+      const result = await storage.getAllSessions(SESSIONS_PER_PAGE, 0);
+      setDisplayedSessions(result.sessions);
+      setTotalSessions(result.total);
+      setHasMoreSessions(result.hasMore);
+    } catch (error) {
+      console.error("Error loading sessions:", error);
+    }
+  };
+
+  const loadMoreSessions = async () => {
+    if (loadingMoreSessions || !hasMoreSessions) return;
+
+    setLoadingMoreSessions(true);
+    try {
+      const result = await storage.getAllSessions(SESSIONS_PER_PAGE, displayedSessions.length);
+      setDisplayedSessions(prev => [...prev, ...result.sessions]);
+      setHasMoreSessions(result.hasMore);
+    } catch (error) {
+      console.error("Error loading more sessions:", error);
+    } finally {
+      setLoadingMoreSessions(false);
     }
   };
 
@@ -598,73 +636,102 @@ export function StatisticsView() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              Dernières sessions
+              Historique des sessions
             </CardTitle>
             <CardDescription>
-              Historique de vos {stats.recentSessions.length} dernières sessions
+              {totalSessions > 0
+                ? `${displayedSessions.length} sur ${totalSessions} sessions`
+                : "Aucune session disponible"}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {stats.recentSessions.length === 0 ? (
+              {displayedSessions.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
                   Aucune session complétée
                 </p>
               ) : (
-                stats.recentSessions.map((session, idx) => (
-                  <motion.div
-                    key={session.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-background/30 hover:bg-background/50 transition-colors"
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <span className={`text-xl font-bold ${getScoreColor(session.score || 0)}`}>
-                          {session.score}%
-                        </span>
-                        <div className="h-4 w-px bg-border/50" />
-                        <span className="text-sm text-muted-foreground">
-                          {session.totalQuestions || session.questions.length} questions
-                        </span>
-                        {session.mode && (
-                          <>
-                            <div className="h-4 w-px bg-border/50" />
-                            <span className={`text-xs px-2 py-0.5 rounded ${
-                              session.mode === "sprint" ? "bg-yellow-500/10 text-yellow-500" :
-                              session.mode === "daily-challenge" ? "bg-orange-500/10 text-orange-500" :
-                              session.mode === "exam" ? "bg-red-500/10 text-red-500" :
-                              "bg-primary/10 text-primary"
-                            }`}>
-                              {session.mode === "sprint" ? "Sprint" :
-                               session.mode === "daily-challenge" ? "Défi" :
-                               session.mode === "exam" ? "Examen" :
-                               session.mode === "review" ? "Révision" : "Pratique"}
-                            </span>
-                          </>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {new Date(session.completedAt!).toLocaleDateString("fr-FR", {
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </p>
-                    </div>
-                    {session.totalTime && (
-                      <div className="text-right">
-                        <div className="flex items-center gap-1.5 text-sm font-mono text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
-                          <Clock className="h-3.5 w-3.5" />
-                          {formatTime(session.totalTime)}
+                <>
+                  {displayedSessions.map((session, idx) => (
+                    <motion.div
+                      key={session.id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: Math.min(idx * 0.05, 0.5) }}
+                      onClick={() => router.push(`/session/${session.id}`)}
+                      className="flex items-center justify-between p-4 rounded-xl border border-white/5 bg-background/30 hover:bg-background/50 hover:border-primary/20 cursor-pointer transition-all group"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xl font-bold ${getScoreColor(session.score || 0)}`}>
+                            {session.score}%
+                          </span>
+                          <div className="h-4 w-px bg-border/50" />
+                          <span className="text-sm text-muted-foreground">
+                            {session.totalQuestions || session.questions.length} questions
+                          </span>
+                          {session.mode && (
+                            <>
+                              <div className="h-4 w-px bg-border/50" />
+                              <span className={`text-xs px-2 py-0.5 rounded ${
+                                session.mode === "sprint" ? "bg-yellow-500/10 text-yellow-500" :
+                                session.mode === "daily-challenge" ? "bg-orange-500/10 text-orange-500" :
+                                session.mode === "exam" ? "bg-red-500/10 text-red-500" :
+                                session.mode === "spaced-review" ? "bg-purple-500/10 text-purple-500" :
+                                "bg-primary/10 text-primary"
+                              }`}>
+                                {session.mode === "sprint" ? "Sprint" :
+                                 session.mode === "daily-challenge" ? "Défi" :
+                                 session.mode === "exam" ? "Examen" :
+                                 session.mode === "review" ? "Révision" :
+                                 session.mode === "spaced-review" ? "Rép. espacée" : "Pratique"}
+                              </span>
+                            </>
+                          )}
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(session.completedAt!).toLocaleDateString("fr-FR", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
                       </div>
-                    )}
-                  </motion.div>
-                ))
+                      <div className="flex items-center gap-3">
+                        {session.totalTime && (
+                          <div className="text-right">
+                            <div className="flex items-center gap-1.5 text-sm font-mono text-muted-foreground bg-muted/30 px-2 py-1 rounded-md">
+                              <Clock className="h-3.5 w-3.5" />
+                              {formatTime(session.totalTime)}
+                            </div>
+                          </div>
+                        )}
+                        <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  {/* Load more button */}
+                  {hasMoreSessions && (
+                    <Button
+                      variant="outline"
+                      onClick={loadMoreSessions}
+                      disabled={loadingMoreSessions}
+                      className="w-full mt-4"
+                    >
+                      {loadingMoreSessions ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Chargement...
+                        </>
+                      ) : (
+                        `Charger plus de sessions (${totalSessions - displayedSessions.length} restantes)`
+                      )}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </CardContent>

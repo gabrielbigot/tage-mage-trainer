@@ -191,6 +191,40 @@ export const hybridStorage = {
     return notionStorage.getStatistics();
   },
 
+  async getAllSessions(limit: number = 20, offset: number = 0): Promise<{
+    sessions: TrainingSession[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    if (await isSupabaseAuthenticated()) {
+      try {
+        return await supabaseStorage.getAllSessions(limit, offset);
+      } catch (error) {
+        console.error("Error getting sessions from Supabase:", error);
+      }
+    }
+    return { sessions: [], total: 0, hasMore: false };
+  },
+
+  async getSessionDetails(sessionId: string): Promise<{
+    session: TrainingSession;
+    results: Array<{
+      questionId: string;
+      userAnswer: number | null;
+      isCorrect: boolean;
+      timeSpent: number;
+    }>;
+  } | null> {
+    if (await isSupabaseAuthenticated()) {
+      try {
+        return await supabaseStorage.getSessionDetails(sessionId);
+      } catch (error) {
+        console.error("Error getting session details from Supabase:", error);
+      }
+    }
+    return null;
+  },
+
   // ========================================
   // IMAGE HANDLING - Supabase Storage
   // ========================================

@@ -1,5 +1,5 @@
 export type DifficultyLevel = "easy" | "medium" | "hard";
-export type SessionMode = "practice" | "exam" | "review" | "flashcards" | "sprint" | "daily-challenge";
+export type SessionMode = "practice" | "exam" | "review" | "flashcards" | "sprint" | "daily-challenge" | "spaced-review";
 export type QuestionType = "standard" | "double-series";
 
 // Spaced Repetition (SM-2 Algorithm) data

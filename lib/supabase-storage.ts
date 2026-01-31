@@ -727,6 +727,127 @@ export const supabaseStorage = {
     };
   },
 
+  // Get all sessions with pagination
+  async getAllSessions(limit: number = 20, offset: number = 0): Promise<{
+    sessions: TrainingSession[];
+    total: number;
+    hasMore: boolean;
+  }> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { sessions: [], total: 0, hasMore: false };
+    }
+
+    // Get total count
+    const { count } = await supabase
+      .from("training_sessions")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .not("completed_at", "is", null);
+
+    const total = count || 0;
+
+    // Get paginated sessions
+    const { data, error } = await supabase
+      .from("training_sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .not("completed_at", "is", null)
+      .order("completed_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      console.error("Error fetching sessions:", error);
+      return { sessions: [], total: 0, hasMore: false };
+    }
+
+    const sessions: TrainingSession[] = (data || []).map(s => ({
+      id: s.id,
+      questions: [],
+      currentIndex: 0,
+      answers: [],
+      startedAt: new Date(s.created_at).getTime(),
+      completedAt: s.completed_at ? new Date(s.completed_at).getTime() : undefined,
+      mode: s.mode as SessionMode,
+      score: s.score,
+      totalTime: s.total_time,
+      totalQuestions: s.total_questions || 0,
+      correctAnswers: s.correct_answers || 0,
+    }));
+
+    return {
+      sessions,
+      total,
+      hasMore: offset + limit < total,
+    };
+  },
+
+  // Get session details with question results
+  async getSessionDetails(sessionId: string): Promise<{
+    session: TrainingSession;
+    results: Array<{
+      questionId: string;
+      userAnswer: number | null;
+      isCorrect: boolean;
+      timeSpent: number;
+    }>;
+  } | null> {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) return null;
+
+    // Get session
+    const { data: sessionData, error: sessionError } = await supabase
+      .from("training_sessions")
+      .select("*")
+      .eq("id", sessionId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (sessionError || !sessionData) {
+      console.error("Error fetching session:", sessionError);
+      return null;
+    }
+
+    // Get question results
+    const { data: resultsData, error: resultsError } = await supabase
+      .from("question_results")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true });
+
+    if (resultsError) {
+      console.error("Error fetching question results:", resultsError);
+      return null;
+    }
+
+    const session: TrainingSession = {
+      id: sessionData.id,
+      questions: [],
+      currentIndex: 0,
+      answers: [],
+      startedAt: new Date(sessionData.created_at).getTime(),
+      completedAt: sessionData.completed_at ? new Date(sessionData.completed_at).getTime() : undefined,
+      mode: sessionData.mode as SessionMode,
+      score: sessionData.score,
+      totalTime: sessionData.total_time,
+      totalQuestions: sessionData.total_questions || 0,
+      correctAnswers: sessionData.correct_answers || 0,
+    };
+
+    const results = (resultsData || []).map(r => ({
+      questionId: r.question_id,
+      userAnswer: r.user_answer,
+      isCorrect: r.is_correct,
+      timeSpent: r.time_spent || 0,
+    }));
+
+    return { session, results };
+  },
+
   // Export/Import
   async exportData(): Promise<string> {
     const questions = await this.getQuestions();
