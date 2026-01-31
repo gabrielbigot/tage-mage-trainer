@@ -283,19 +283,32 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const response = await notion.databases.query({
-      database_id: NOTION_DATABASE_ID,
-      filter,
-      sorts: [
-        {
-          timestamp: "created_time",
-          direction: "descending",
-        },
-      ],
-    });
+    // Pagination: récupérer TOUTES les questions (Notion limite à 100 par requête)
+    let allResults: any[] = [];
+    let hasMore = true;
+    let startCursor: string | undefined = undefined;
+
+    while (hasMore) {
+      const response = await notion.databases.query({
+        database_id: NOTION_DATABASE_ID,
+        filter,
+        sorts: [
+          {
+            timestamp: "created_time",
+            direction: "descending",
+          },
+        ],
+        start_cursor: startCursor,
+        page_size: 100, // Maximum autorisé par Notion
+      });
+
+      allResults = [...allResults, ...response.results];
+      hasMore = response.has_more;
+      startCursor = response.next_cursor ?? undefined;
+    }
 
     const questions = await Promise.all(
-      response.results.map(page => notionPageToQuestion(page))
+      allResults.map(page => notionPageToQuestion(page))
     );
 
     return NextResponse.json({ questions });
