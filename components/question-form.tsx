@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DifficultyLevel, Question, QuestionType, DoubleSeriesData } from "@/lib/types";
+import { DifficultyLevel, Question, QuestionType, DoubleSeriesData, ConditionsMinimalesData } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { Plus, X, Star, Upload, Image as ImageIcon, Loader2 } from "lucide-react";
 import { DoubleSeriesForm } from "@/components/double-series-form";
+import { ConditionsMinimalesForm } from "@/components/conditions-minimales-form";
 
 interface QuestionFormProps {
   onQuestionAdded?: () => void;
@@ -38,6 +39,10 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
     horizontalLabel: "",
     verticalLabel: "",
   });
+  const [conditionsMinimalesData, setConditionsMinimalesData] = useState<ConditionsMinimalesData>({
+    condition1: "",
+    condition2: "",
+  });
 
   // Load question data when editing
   useEffect(() => {
@@ -55,6 +60,9 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
       setImagePreview(editQuestion.imageUrl || "");
       if (editQuestion.doubleSeriesData) {
         setDoubleSeriesData(editQuestion.doubleSeriesData);
+      }
+      if (editQuestion.conditionsMinimalesData) {
+        setConditionsMinimalesData(editQuestion.conditionsMinimalesData);
       }
     }
   }, [editQuestion]);
@@ -178,6 +186,7 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           imageUrl: finalImageUrl || undefined,
           questionType,
           doubleSeriesData: questionType === "double-series" ? doubleSeriesData : undefined,
+          conditionsMinimalesData: questionType === "conditions-minimales" ? conditionsMinimalesData : undefined,
         });
       } else {
         // Add new question
@@ -193,6 +202,7 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
           imageUrl: finalImageUrl || undefined,
           questionType,
           doubleSeriesData: questionType === "double-series" ? doubleSeriesData : undefined,
+          conditionsMinimalesData: questionType === "conditions-minimales" ? conditionsMinimalesData : undefined,
         });
       }
     } catch (error) {
@@ -224,6 +234,10 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
       horizontalLabel: "",
       verticalLabel: "",
     });
+    setConditionsMinimalesData({
+      condition1: "",
+      condition2: "",
+    });
 
     onQuestionAdded?.();
     onCancelEdit?.();
@@ -250,6 +264,10 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
       horizontalLabel: "",
       verticalLabel: "",
     });
+    setConditionsMinimalesData({
+      condition1: "",
+      condition2: "",
+    });
     onCancelEdit?.();
   };
 
@@ -271,6 +289,7 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
               >
                 <option value="standard">Standard</option>
                 <option value="double-series">Série Double (Sous-test 6)</option>
+                <option value="conditions-minimales">Conditions Minimales</option>
               </select>
             </div>
 
@@ -363,6 +382,10 @@ export function QuestionForm({ onQuestionAdded, editQuestion, onCancelEdit }: Qu
 
           {questionType === "double-series" && (
             <DoubleSeriesForm value={doubleSeriesData} onChange={setDoubleSeriesData} />
+          )}
+
+          {questionType === "conditions-minimales" && (
+            <ConditionsMinimalesForm value={conditionsMinimalesData} onChange={setConditionsMinimalesData} />
           )}
 
           <div className="space-y-2">

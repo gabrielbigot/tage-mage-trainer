@@ -44,6 +44,10 @@ async function notionPageToQuestion(page: any) {
   let verticalSeries: string[] = [];
   let horizontalLabel = "";
   let verticalLabel = "";
+  // Conditions minimales
+  let conditionsMinimalesData = null;
+  let condition1 = "";
+  let condition2 = "";
 
   for (const block of blocks) {
     // Check for double series markers in bullet lists (NEW SIMPLE FORMAT)
@@ -80,6 +84,17 @@ async function notionPageToQuestion(page: any) {
           });
           console.log(`[Question ${title}] Parsed vertical series (bullet):`, verticalSeries);
         }
+      }
+      // Conditions minimales: starts with (1) or (2)
+      else if (text.match(/^\s*\(1\)/)) {
+        questionType = "conditions-minimales";
+        condition1 = text.replace(/^\s*\(1\)\s*/, "").trim();
+        console.log(`[Question ${title}] Parsed condition 1:`, condition1);
+      }
+      else if (text.match(/^\s*\(2\)/)) {
+        questionType = "conditions-minimales";
+        condition2 = text.replace(/^\s*\(2\)\s*/, "").trim();
+        console.log(`[Question ${title}] Parsed condition 2:`, condition2);
       }
     }
     // BACKWARD COMPATIBILITY: Keep callout parsing for existing questions
@@ -223,6 +238,17 @@ async function notionPageToQuestion(page: any) {
     console.error(`[Question ${title}] ERROR: Double series detected but data incomplete! hSeries:`, horizontalSeries, "vSeries:", verticalSeries);
   }
 
+  // Build conditions minimales data if found
+  if (questionType === "conditions-minimales" && condition1 && condition2) {
+    conditionsMinimalesData = {
+      condition1,
+      condition2,
+    };
+    console.log(`[Question ${title}] Created conditionsMinimalesData:`, conditionsMinimalesData);
+  } else if (questionType === "conditions-minimales") {
+    console.error(`[Question ${title}] ERROR: Conditions minimales detected but data incomplete! c1:`, condition1, "c2:", condition2);
+  }
+
   return {
     id: page.id,
     category,
@@ -236,6 +262,7 @@ async function notionPageToQuestion(page: any) {
     isFavorite,
     questionType,
     doubleSeriesData,
+    conditionsMinimalesData,
   };
 }
 
@@ -325,7 +352,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite, questionType, doubleSeriesData } = body;
+    const { question, category, options, correctAnswer, explanation, difficulty, tags, isFavorite, questionType, doubleSeriesData, conditionsMinimalesData } = body;
 
     // Créer la page avec les propriétés
     const response = await notion.pages.create({
@@ -400,6 +427,42 @@ export async function POST(request: NextRequest) {
       });
 
       // Options de réponse (paires de valeurs)
+      options.forEach((option: string, index: number) => {
+        children.push({
+          type: "to_do",
+          to_do: {
+            rich_text: [{ text: { content: option } }],
+            checked: index === correctAnswer,
+          },
+        });
+      });
+    }
+    // Si c'est des conditions minimales, créer des listes à puces avec (1) et (2)
+    else if (questionType === "conditions-minimales" && conditionsMinimalesData) {
+      const { condition1, condition2 } = conditionsMinimalesData;
+
+      // Condition 1
+      children.push({
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [{ text: { content: `(1) ${condition1}` } }],
+        },
+      });
+
+      // Condition 2
+      children.push({
+        type: "bulleted_list_item",
+        bulleted_list_item: {
+          rich_text: [{ text: { content: `(2) ${condition2}` } }],
+        },
+      });
+
+      children.push({
+        type: "paragraph",
+        paragraph: { rich_text: [] },
+      });
+
+      // Options de réponse
       options.forEach((option: string, index: number) => {
         children.push({
           type: "to_do",

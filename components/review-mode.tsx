@@ -306,6 +306,13 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
                   >
                     Séries doubles
                   </Button>
+                  <Button
+                    variant={selectedType === "conditions-minimales" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedType("conditions-minimales")}
+                  >
+                    Conditions min.
+                  </Button>
                 </div>
               </div>
 

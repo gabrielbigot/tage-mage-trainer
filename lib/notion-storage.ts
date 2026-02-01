@@ -1,5 +1,5 @@
 import { notion, NOTION_DATABASE_ID } from "./notion/client";
-import { Question, TrainingSession, QuestionResult, Statistics, DifficultyLevel, SessionMode } from "./types";
+import { Question, TrainingSession, QuestionResult, Statistics, DifficultyLevel, SessionMode, QuestionType } from "./types";
 import { PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 
 /**
@@ -672,31 +672,29 @@ export const notionStorage = {
     const questionTypeStats: Record<string, { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }> = {
       "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
       "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
     };
 
-    let standardTime = 0, doubleSeriesTime = 0;
+    const typeTimes: Record<string, number> = { "standard": 0, "double-series": 0, "conditions-minimales": 0 };
     questions.forEach(q => {
       const type = q.questionType || "standard";
+      if (!questionTypeStats[type]) {
+        questionTypeStats[type] = { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 };
+        typeTimes[type] = 0;
+      }
       questionTypeStats[type].totalAnswered += q.timesAnswered || 0;
       questionTypeStats[type].totalCorrect += q.timesCorrect || 0;
-      if (type === "standard") {
-        standardTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
-      } else {
-        doubleSeriesTime += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
-      }
+      typeTimes[type] += (q.averageTimeSpent || 0) * (q.timesAnswered || 0);
     });
 
     Object.keys(questionTypeStats).forEach(type => {
       questionTypeStats[type].averageScore = questionTypeStats[type].totalAnswered > 0
         ? Math.round((questionTypeStats[type].totalCorrect / questionTypeStats[type].totalAnswered) * 100)
         : 0;
+      questionTypeStats[type].averageTime = questionTypeStats[type].totalAnswered > 0
+        ? Math.round(typeTimes[type] / questionTypeStats[type].totalAnswered)
+        : 0;
     });
-    questionTypeStats["standard"].averageTime = questionTypeStats["standard"].totalAnswered > 0
-      ? Math.round(standardTime / questionTypeStats["standard"].totalAnswered)
-      : 0;
-    questionTypeStats["double-series"].averageTime = questionTypeStats["double-series"].totalAnswered > 0
-      ? Math.round(doubleSeriesTime / questionTypeStats["double-series"].totalAnswered)
-      : 0;
 
     return {
       totalQuestions: questions.length,
@@ -707,7 +705,7 @@ export const notionStorage = {
       recentSessions: completedSessions.slice(-10),
       categoryStats,
       difficultyStats,
-      questionTypeStats: questionTypeStats as Record<"standard" | "double-series", { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }>,
+      questionTypeStats: questionTypeStats as Record<QuestionType, { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }>,
       streak: await this.getStreak(),
     };
   },

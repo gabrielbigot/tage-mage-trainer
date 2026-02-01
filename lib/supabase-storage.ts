@@ -580,6 +580,7 @@ export const supabaseStorage = {
       questionTypeStats: {
         "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
         "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+        "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
       },
     };
 
@@ -710,6 +711,7 @@ export const supabaseStorage = {
         averageTime: totalQuestionsAnswered > 0 ? Math.round(totalTimeSpent / totalQuestionsAnswered) : 0
       },
       "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
     };
 
     return {
@@ -721,7 +723,7 @@ export const supabaseStorage = {
       recentSessions,
       categoryStats,
       difficultyStats,
-      questionTypeStats: questionTypeStats as Record<"standard" | "double-series", { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }>,
+      questionTypeStats: questionTypeStats as Record<QuestionType, { totalAnswered: number; totalCorrect: number; averageScore: number; averageTime: number }>,
       streak: await this.getStreak(),
       tagStats,
     };
@@ -1237,6 +1239,7 @@ export const supabaseStorage = {
         questionTypeStats: {
           "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
           "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+          "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
         },
         tagStats: [],
       };

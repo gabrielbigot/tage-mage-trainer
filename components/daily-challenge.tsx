@@ -8,6 +8,7 @@ import { storage } from "@/lib/storage";
 import { supabaseStorage } from "@/lib/supabase-storage";
 import { createClient } from "@/lib/supabase/client";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
+import { ConditionsMinimalesDisplay } from "@/components/conditions-minimales-display";
 import {
   Calendar,
   Flame,
@@ -680,6 +681,12 @@ export function DailyChallenge({ onBack }: DailyChallengeProps) {
               {currentQuestion?.questionType === "double-series" && currentQuestion.doubleSeriesData && (
                 <div className="mb-6">
                   <DoubleSeriesDisplay data={currentQuestion.doubleSeriesData} />
+                </div>
+              )}
+
+              {currentQuestion?.questionType === "conditions-minimales" && currentQuestion.conditionsMinimalesData && (
+                <div className="mb-6">
+                  <ConditionsMinimalesDisplay data={currentQuestion.conditionsMinimalesData} />
                 </div>
               )}
 

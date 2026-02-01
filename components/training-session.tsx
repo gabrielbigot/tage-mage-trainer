@@ -10,6 +10,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
+import { ConditionsMinimalesDisplay } from "@/components/conditions-minimales-display";
 
 interface TrainingSessionProps {
   onExit: () => void;
@@ -285,6 +286,9 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
                         {q.questionType === "double-series" && q.doubleSeriesData && (
                           <DoubleSeriesDisplay data={q.doubleSeriesData} />
                         )}
+                        {q.questionType === "conditions-minimales" && q.conditionsMinimalesData && (
+                          <ConditionsMinimalesDisplay data={q.conditionsMinimalesData} />
+                        )}
                         {q.imageUrl && (
                           <div className="my-4 rounded-xl overflow-hidden border bg-muted/50">
                             <img
@@ -410,6 +414,10 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
 
                 {currentQuestion.questionType === "double-series" && currentQuestion.doubleSeriesData && (
                   <DoubleSeriesDisplay data={currentQuestion.doubleSeriesData} />
+                )}
+
+                {currentQuestion.questionType === "conditions-minimales" && currentQuestion.conditionsMinimalesData && (
+                  <ConditionsMinimalesDisplay data={currentQuestion.conditionsMinimalesData} />
                 )}
 
                 {currentQuestion.imageUrl && (

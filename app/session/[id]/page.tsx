@@ -8,6 +8,8 @@ import { storage } from "@/lib/storage";
 import { TrainingSession, Question } from "@/lib/types";
 import { ArrowLeft, Clock, CheckCircle2, XCircle, Trophy, Calendar, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { DoubleSeriesDisplay } from "@/components/double-series-display";
+import { ConditionsMinimalesDisplay } from "@/components/conditions-minimales-display";
 
 interface SessionResult {
   questionId: string;
@@ -269,6 +271,20 @@ export default function SessionDetailPage() {
 
                   {/* Question Text */}
                   <p className="font-medium mb-4">{item.question.question}</p>
+
+                  {/* Double Series Display */}
+                  {item.question.questionType === "double-series" && item.question.doubleSeriesData && (
+                    <div className="mb-4">
+                      <DoubleSeriesDisplay data={item.question.doubleSeriesData} />
+                    </div>
+                  )}
+
+                  {/* Conditions Minimales Display */}
+                  {item.question.questionType === "conditions-minimales" && item.question.conditionsMinimalesData && (
+                    <div className="mb-4">
+                      <ConditionsMinimalesDisplay data={item.question.conditionsMinimalesData} />
+                    </div>
+                  )}
 
                   {/* Options */}
                   <div className="space-y-2">

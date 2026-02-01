@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Question, QuestionResult } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
+import { ConditionsMinimalesDisplay } from "@/components/conditions-minimales-display";
 import {
   Zap,
   Clock,
@@ -477,6 +478,12 @@ export function SprintMode({ onBack }: SprintModeProps) {
               {currentQuestion?.questionType === "double-series" && currentQuestion.doubleSeriesData && (
                 <div className="mb-6">
                   <DoubleSeriesDisplay data={currentQuestion.doubleSeriesData} />
+                </div>
+              )}
+
+              {currentQuestion?.questionType === "conditions-minimales" && currentQuestion.conditionsMinimalesData && (
+                <div className="mb-6">
+                  <ConditionsMinimalesDisplay data={currentQuestion.conditionsMinimalesData} />
                 </div>
               )}
 

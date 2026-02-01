@@ -1,6 +1,6 @@
 export type DifficultyLevel = "easy" | "medium" | "hard";
 export type SessionMode = "practice" | "exam" | "review" | "flashcards" | "sprint" | "daily-challenge" | "spaced-review";
-export type QuestionType = "standard" | "double-series";
+export type QuestionType = "standard" | "double-series" | "conditions-minimales";
 
 // Spaced Repetition (SM-2 Algorithm) data
 export interface SpacedRepetitionData {
@@ -39,6 +39,11 @@ export interface DoubleSeriesData {
   verticalLabel?: string;      // ex: "Série numérique"
 }
 
+export interface ConditionsMinimalesData {
+  condition1: string;  // ex: "x + y = 10"
+  condition2: string;  // ex: "x - y = 2"
+}
+
 export interface Question {
   id: string;
   category: string;
@@ -53,9 +58,10 @@ export interface Question {
   notes?: string;
   isFavorite?: boolean;
   imageUrl?: string;
-  // Double series support
+  // Question type support
   questionType?: QuestionType;
   doubleSeriesData?: DoubleSeriesData;
+  conditionsMinimalesData?: ConditionsMinimalesData;
   // Statistics
   timesAnswered?: number;
   timesCorrect?: number;

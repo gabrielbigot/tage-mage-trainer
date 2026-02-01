@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
+import { ConditionsMinimalesDisplay } from "@/components/conditions-minimales-display";
 
 interface QuestionListProps {
   refresh?: number;
@@ -264,6 +265,12 @@ export function QuestionList({ refresh, onEdit }: QuestionListProps) {
                       {q.questionType === "double-series" && q.doubleSeriesData && (
                         <div className="my-3">
                           <DoubleSeriesDisplay data={q.doubleSeriesData} />
+                        </div>
+                      )}
+
+                      {q.questionType === "conditions-minimales" && q.conditionsMinimalesData && (
+                        <div className="my-3">
+                          <ConditionsMinimalesDisplay data={q.conditionsMinimalesData} />
                         </div>
                       )}
 
