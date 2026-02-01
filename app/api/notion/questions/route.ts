@@ -54,6 +54,9 @@ async function notionPageToQuestion(page: any) {
     if (block.type === "bulleted_list_item") {
       const text = block.bulleted_list_item?.rich_text?.map((t: any) => t.plain_text).join("") || "";
 
+      // Debug log for all bullet items
+      console.log(`[Question ${title}] Found bullet item:`, JSON.stringify(text));
+
       // Horizontal series: starts with → or ➡️
       if (text.startsWith("→") || text.startsWith("➡️") || text.startsWith("➡")) {
         questionType = "double-series";
@@ -85,15 +88,15 @@ async function notionPageToQuestion(page: any) {
           console.log(`[Question ${title}] Parsed vertical series (bullet):`, verticalSeries);
         }
       }
-      // Conditions minimales: starts with (1) or (2)
-      else if (text.match(/^\s*\(1\)/)) {
+      // Conditions minimales: starts with (1) or (2) - check with includes for robustness
+      else if (text.includes("(1)") && text.indexOf("(1)") < 5) {
         questionType = "conditions-minimales";
-        condition1 = text.replace(/^\s*\(1\)\s*/, "").trim();
+        condition1 = text.replace(/.*\(1\)\s*/, "").trim();
         console.log(`[Question ${title}] Parsed condition 1:`, condition1);
       }
-      else if (text.match(/^\s*\(2\)/)) {
+      else if (text.includes("(2)") && text.indexOf("(2)") < 5) {
         questionType = "conditions-minimales";
-        condition2 = text.replace(/^\s*\(2\)\s*/, "").trim();
+        condition2 = text.replace(/.*\(2\)\s*/, "").trim();
         console.log(`[Question ${title}] Parsed condition 2:`, condition2);
       }
     }
