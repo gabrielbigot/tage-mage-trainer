@@ -48,10 +48,23 @@ async function notionPageToQuestion(page: any) {
   let conditionsMinimalesData = null;
   let condition1 = "";
   let condition2 = "";
+  // Image support
+  let imageUrl = "";
 
   for (const block of blocks) {
+    // Check for image blocks
+    if (block.type === "image") {
+      // Notion images can be either uploaded (file) or external (external)
+      const imageBlock = block.image;
+      if (imageBlock.type === "file") {
+        imageUrl = imageBlock.file.url;
+      } else if (imageBlock.type === "external") {
+        imageUrl = imageBlock.external.url;
+      }
+      console.log(`[Question ${title}] Found image:`, imageUrl);
+    }
     // Check for double series markers in bullet lists (NEW SIMPLE FORMAT)
-    if (block.type === "bulleted_list_item") {
+    else if (block.type === "bulleted_list_item") {
       const text = block.bulleted_list_item?.rich_text?.map((t: any) => t.plain_text).join("") || "";
 
       // Debug log for all bullet items
@@ -263,6 +276,7 @@ async function notionPageToQuestion(page: any) {
     difficulty,
     tags: tags.length > 0 ? tags : undefined,
     isFavorite,
+    imageUrl: imageUrl || undefined,
     questionType,
     doubleSeriesData,
     conditionsMinimalesData,
