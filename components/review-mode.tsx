@@ -23,14 +23,28 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [errorRateFilter, setErrorRateFilter] = useState<string>("all"); // all, never-correct, high-error (>50%), any-error
   const [minErrorRate, setMinErrorRate] = useState(0); // 0-100
+  const [allSchemaTags, setAllSchemaTags] = useState<string[]>([]);
 
   useEffect(() => {
     loadQuestions();
+    loadSchema();
   }, []);
 
   const loadQuestions = async () => {
     const questions = await storage.getQuestions();
     setAllQuestions(questions);
+  };
+
+  const loadSchema = async () => {
+    try {
+      const response = await fetch("/api/notion/schema");
+      if (response.ok) {
+        const data = await response.json();
+        setAllSchemaTags(data.tags || []);
+      }
+    } catch (error) {
+      console.error("Error loading schema:", error);
+    }
   };
 
   const getErrorRate = (question: Question): number => {
@@ -116,7 +130,29 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
   };
 
   const categories = ["all", ...Array.from(new Set(allQuestions.map(q => q.category)))];
-  const allTags = Array.from(new Set(allQuestions.flatMap(q => q.tags || [])));
+
+  // Get tags: use schema tags as base, filtered by selected category
+  const getDisplayedTags = () => {
+    if (selectedCategory === "all") {
+      const questionTags = Array.from(new Set(allQuestions.flatMap(q => q.tags || [])));
+      const merged = new Set([...allSchemaTags, ...questionTags]);
+      return Array.from(merged);
+    }
+    const categoryQuestions = allQuestions.filter(q => q.category === selectedCategory);
+    return Array.from(new Set(categoryQuestions.flatMap(q => q.tags || [])));
+  };
+  const displayedTags = getDisplayedTags();
+
+  // Clear selected tags that are no longer available when category changes
+  useEffect(() => {
+    if (selectedTags.length > 0) {
+      const validTags = selectedTags.filter(tag => displayedTags.includes(tag));
+      if (validTags.length !== selectedTags.length) {
+        setSelectedTags(validTags);
+      }
+    }
+  }, [selectedCategory]);
+
   const availableQuestions = getFilteredQuestions();
   const availableCount = availableQuestions.length;
 
@@ -316,11 +352,11 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
                 </div>
               </div>
 
-              {allTags.length > 0 && (
+              {displayedTags.length > 0 && (
                 <div className="space-y-2">
-                  <Label>Tags</Label>
+                  <Label>Tags {selectedCategory !== "all" && <span className="text-xs text-muted-foreground font-normal">({selectedCategory})</span>}</Label>
                   <div className="flex gap-2 flex-wrap">
-                    {allTags.map((tag) => (
+                    {displayedTags.map((tag) => (
                       <Button
                         key={tag}
                         variant={selectedTags.includes(tag) ? "default" : "outline"}

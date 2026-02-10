@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Question } from "@/lib/types";
 import { storage } from "@/lib/storage";
-import { Clock, Play, ArrowLeft } from "lucide-react";
+import { Clock, Play, ArrowLeft, Filter } from "lucide-react";
 
 interface ExamModeProps {
   onStartExam: (questions: Question[], timePerQuestion: number) => void;
@@ -20,14 +20,38 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
   const [timePerQuestion, setTimePerQuestion] = useState(90); // seconds
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [allSchemaTags, setAllSchemaTags] = useState<string[]>([]);
 
   useEffect(() => {
     loadQuestions();
+    loadSchema();
   }, []);
 
   const loadQuestions = async () => {
     const allQuestions = await storage.getQuestions();
     setQuestions(allQuestions);
+  };
+
+  const loadSchema = async () => {
+    try {
+      const response = await fetch("/api/notion/schema");
+      if (response.ok) {
+        const data = await response.json();
+        setAllSchemaTags(data.tags || []);
+      }
+    } catch (error) {
+      console.error("Error loading schema:", error);
+    }
+  };
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tag)
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
   };
 
   const handleStart = async () => {
@@ -43,6 +67,19 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
       filtered = filtered.filter(q => q.difficulty === selectedDifficulty);
     }
 
+    // Filter by question type
+    if (selectedType !== "all") {
+      filtered = filtered.filter(q => (q.questionType || "standard") === selectedType);
+    }
+
+    // Filter by tags
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(q => {
+        const qTags = q.tags || [];
+        return selectedTags.some(tag => qTags.includes(tag));
+      });
+    }
+
     // Shuffle and select
     const shuffled = [...filtered].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
@@ -56,6 +93,40 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
   };
 
   const categories = ["all", ...Array.from(new Set(questions.map(q => q.category)))];
+
+  // Get tags: use schema tags as base, filtered by selected category
+  const getDisplayedTags = () => {
+    if (selectedCategory === "all") {
+      const questionTags = Array.from(new Set(questions.flatMap(q => q.tags || [])));
+      const merged = new Set([...allSchemaTags, ...questionTags]);
+      return Array.from(merged);
+    }
+    const categoryQuestions = questions.filter(q => q.category === selectedCategory);
+    return Array.from(new Set(categoryQuestions.flatMap(q => q.tags || [])));
+  };
+  const displayedTags = getDisplayedTags();
+
+  // Clear selected tags that are no longer available when category changes
+  useEffect(() => {
+    if (selectedTags.length > 0) {
+      const validTags = selectedTags.filter(tag => displayedTags.includes(tag));
+      if (validTags.length !== selectedTags.length) {
+        setSelectedTags(validTags);
+      }
+    }
+  }, [selectedCategory]);
+
+  // Calculate available questions with current filters
+  const getFilteredCount = () => {
+    let filtered = questions;
+    if (selectedCategory !== "all") filtered = filtered.filter(q => q.category === selectedCategory);
+    if (selectedDifficulty !== "all") filtered = filtered.filter(q => q.difficulty === selectedDifficulty);
+    if (selectedType !== "all") filtered = filtered.filter(q => (q.questionType || "standard") === selectedType);
+    if (selectedTags.length > 0) filtered = filtered.filter(q => selectedTags.some(tag => (q.tags || []).includes(tag)));
+    return filtered.length;
+  };
+  const availableCount = getFilteredCount();
+
   const totalTime = questionCount * timePerQuestion;
   const totalMinutes = Math.floor(totalTime / 60);
   const totalSeconds = totalTime % 60;
@@ -78,7 +149,10 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Configuration de l&apos;examen</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Configuration de l&apos;examen
+            </CardTitle>
             <CardDescription>
               Personnalisez les paramètres de votre session chronométrée
             </CardDescription>
@@ -90,12 +164,12 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
                 id="questionCount"
                 type="number"
                 min="1"
-                max={questions.length}
+                max={availableCount}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(Math.max(1, parseInt(e.target.value) || 1))}
               />
               <p className="text-xs text-muted-foreground">
-                Maximum : {questions.length} questions disponibles
+                {availableCount} question(s) disponible(s) avec vos filtres
               </p>
             </div>
 
@@ -188,6 +262,63 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
                 </Button>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label>Type de question</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant={selectedType === "all" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedType("all")}
+                >
+                  Tous
+                </Button>
+                <Button
+                  variant={selectedType === "standard" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedType("standard")}
+                >
+                  Standard
+                </Button>
+                <Button
+                  variant={selectedType === "double-series" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedType("double-series")}
+                >
+                  Séries doubles
+                </Button>
+                <Button
+                  variant={selectedType === "conditions-minimales" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedType("conditions-minimales")}
+                >
+                  Conditions min.
+                </Button>
+              </div>
+            </div>
+
+            {displayedTags.length > 0 && (
+              <div className="space-y-2">
+                <Label>Tags {selectedCategory !== "all" && <span className="text-xs text-muted-foreground font-normal">({selectedCategory})</span>}</Label>
+                <div className="flex gap-2 flex-wrap">
+                  {displayedTags.map((tag) => (
+                    <Button
+                      key={tag}
+                      variant={selectedTags.includes(tag) ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => toggleTag(tag)}
+                    >
+                      {tag}
+                    </Button>
+                  ))}
+                </div>
+                {selectedTags.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedTags.length} tag(s) sélectionné(s)
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -202,7 +333,12 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
             <div className="space-y-3">
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
                 <span className="text-sm font-medium">Questions</span>
-                <span className="text-2xl font-bold text-primary">{questionCount}</span>
+                <span className="text-2xl font-bold text-primary">{Math.min(questionCount, availableCount)}</span>
+              </div>
+
+              <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
+                <span className="text-sm font-medium">Disponibles</span>
+                <span className="text-2xl font-bold text-primary">{availableCount}</span>
               </div>
 
               <div className="flex justify-between items-center p-3 bg-muted rounded-lg">
@@ -239,7 +375,7 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
               onClick={handleStart}
               className="w-full"
               size="lg"
-              disabled={questions.length === 0}
+              disabled={availableCount === 0}
             >
               <Play className="h-5 w-5 mr-2" />
               Démarrer l&apos;examen

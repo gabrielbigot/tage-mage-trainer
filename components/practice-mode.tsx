@@ -23,14 +23,28 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [allSchemaTags, setAllSchemaTags] = useState<string[]>([]);
 
   useEffect(() => {
     loadQuestions();
+    loadSchema();
   }, []);
 
   const loadQuestions = async () => {
     const allQuestions = await storage.getQuestions();
     setQuestions(allQuestions);
+  };
+
+  const loadSchema = async () => {
+    try {
+      const response = await fetch("/api/notion/schema");
+      if (response.ok) {
+        const data = await response.json();
+        setAllSchemaTags(data.tags || []);
+      }
+    } catch (error) {
+      console.error("Error loading schema:", error);
+    }
   };
 
   const handleStart = async () => {
@@ -81,7 +95,30 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
 
   // Extract unique values
   const categories = ["all", ...Array.from(new Set(questions.map(q => q.category)))];
-  const allTags = Array.from(new Set(questions.flatMap(q => q.tags || [])));
+
+  // Get tags: use schema tags as base, filtered by selected category
+  const getDisplayedTags = () => {
+    if (selectedCategory === "all") {
+      // Show all tags from schema, plus any from questions not in schema
+      const questionTags = Array.from(new Set(questions.flatMap(q => q.tags || [])));
+      const merged = new Set([...allSchemaTags, ...questionTags]);
+      return Array.from(merged);
+    }
+    // When a category is selected, show only tags used by questions in that category
+    const categoryQuestions = questions.filter(q => q.category === selectedCategory);
+    return Array.from(new Set(categoryQuestions.flatMap(q => q.tags || [])));
+  };
+  const displayedTags = getDisplayedTags();
+
+  // Clear selected tags that are no longer available when category changes
+  useEffect(() => {
+    if (selectedTags.length > 0) {
+      const validTags = selectedTags.filter(tag => displayedTags.includes(tag));
+      if (validTags.length !== selectedTags.length) {
+        setSelectedTags(validTags);
+      }
+    }
+  }, [selectedCategory]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -215,11 +252,11 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
               </div>
             </div>
 
-            {allTags.length > 0 && (
+            {displayedTags.length > 0 && (
               <div className="space-y-2">
-                <Label>Tags</Label>
+                <Label>Tags {selectedCategory !== "all" && <span className="text-xs text-muted-foreground font-normal">({selectedCategory})</span>}</Label>
                 <div className="flex gap-2 flex-wrap">
-                  {allTags.map((tag) => (
+                  {displayedTags.map((tag) => (
                     <Button
                       key={tag}
                       variant={selectedTags.includes(tag) ? "default" : "outline"}
