@@ -213,9 +213,10 @@ export const storage = {
       "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
       "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
       "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+      "graphic-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
     };
 
-    const typeTimes: Record<string, number> = { "standard": 0, "double-series": 0, "conditions-minimales": 0 };
+    const typeTimes: Record<string, number> = { "standard": 0, "double-series": 0, "conditions-minimales": 0, "graphic-series": 0 };
     questions.forEach(q => {
       const type = q.questionType || "standard";
       if (!questionTypeStats[type]) {

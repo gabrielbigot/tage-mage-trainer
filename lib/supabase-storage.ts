@@ -581,6 +581,7 @@ export const supabaseStorage = {
         "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
         "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
         "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+        "graphic-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
       },
     };
 
@@ -1240,6 +1241,7 @@ export const supabaseStorage = {
           "standard": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
           "double-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
           "conditions-minimales": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
+          "graphic-series": { totalAnswered: 0, totalCorrect: 0, averageScore: 0, averageTime: 0 },
         },
         tagStats: [],
       };

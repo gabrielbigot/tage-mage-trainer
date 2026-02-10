@@ -288,11 +288,11 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
                   Séries doubles
                 </Button>
                 <Button
-                  variant={selectedType === "conditions-minimales" ? "default" : "outline"}
+                  variant={selectedType === "graphic-series" ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setSelectedType("conditions-minimales")}
+                  onClick={() => setSelectedType("graphic-series")}
                 >
-                  Conditions min.
+                  Séries graphiques
                 </Button>
               </div>
             </div>
