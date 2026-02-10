@@ -265,6 +265,12 @@ async function notionPageToQuestion(page: any) {
     console.error(`[Question ${title}] ERROR: Conditions minimales detected but data incomplete! c1:`, condition1, "c2:", condition2);
   }
 
+  // Detect graphic series: questions with an image that aren't already another special type
+  if (imageUrl && questionType === "standard") {
+    questionType = "graphic-series";
+    console.log(`[Question ${title}] Detected as graphic-series (has image)`);
+  }
+
   return {
     id: page.id,
     category,
