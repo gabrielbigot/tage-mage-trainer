@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@notionhq/client";
+import { notionCache } from "@/lib/notion/cache";
 
 const notion = new Client({
   auth: process.env.NOTION_API_KEY,
@@ -297,6 +298,18 @@ export async function GET(request: NextRequest) {
     const difficulty = searchParams.get("difficulty");
     const favorite = searchParams.get("favorite");
     const tags = searchParams.get("tags");
+    const noCache = searchParams.get("nocache") === "true";
+
+    const hasFilters = category || difficulty || favorite || tags;
+
+    // Use cache for unfiltered requests (the most common case)
+    if (!hasFilters && !noCache) {
+      const cached = notionCache.getQuestions();
+      if (cached) {
+        console.log(`[Cache] Returning ${cached.length} cached questions`);
+        return NextResponse.json({ questions: cached });
+      }
+    }
 
     let filter: any = undefined;
 
@@ -360,6 +373,12 @@ export async function GET(request: NextRequest) {
     const questions = await Promise.all(
       allResults.map(page => notionPageToQuestion(page))
     );
+
+    // Cache unfiltered results
+    if (!hasFilters) {
+      notionCache.setQuestions(questions);
+      console.log(`[Cache] Cached ${questions.length} questions`);
+    }
 
     return NextResponse.json({ questions });
   } catch (error: any) {
@@ -535,6 +554,9 @@ export async function POST(request: NextRequest) {
     });
 
     const newQuestion = await notionPageToQuestion(response);
+
+    // Invalidate cache after creating a question
+    notionCache.invalidateQuestions();
 
     return NextResponse.json({ question: newQuestion });
   } catch (error: any) {

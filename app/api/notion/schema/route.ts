@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Client } from "@notionhq/client";
+import { notionCache } from "@/lib/notion/cache";
 
 const notion = new Client({
   auth: process.env.NOTION_API_KEY,
@@ -10,6 +11,13 @@ const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID || "";
 // GET - Retrieve database schema (all categories and tags defined in Notion)
 export async function GET() {
   try {
+    // Check cache first
+    const cached = notionCache.getSchema();
+    if (cached) {
+      console.log("[Cache] Returning cached schema");
+      return NextResponse.json(cached);
+    }
+
     const database = await notion.databases.retrieve({
       database_id: NOTION_DATABASE_ID,
     });
@@ -24,7 +32,11 @@ export async function GET() {
     const tagsProp = properties["Tags"];
     const tags: string[] = tagsProp?.multi_select?.options?.map((opt: any) => opt.name) || [];
 
-    return NextResponse.json({ categories, tags });
+    const result = { categories, tags };
+    notionCache.setSchema(result);
+    console.log(`[Cache] Cached schema (${categories.length} categories, ${tags.length} tags)`);
+
+    return NextResponse.json(result);
   } catch (error: any) {
     console.error("Error fetching database schema:", error);
     return NextResponse.json(

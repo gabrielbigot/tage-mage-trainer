@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Client } from "@notionhq/client";
+import { notionCache } from "@/lib/notion/cache";
 
 const notion = new Client({
   auth: process.env.NOTION_API_KEY,
@@ -143,6 +144,9 @@ export async function PATCH(
       });
     }
 
+    // Invalidate cache after updating a question
+    notionCache.invalidateQuestions();
+
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error("Error updating question:", error);
@@ -165,6 +169,9 @@ export async function DELETE(
       page_id: id,
       archived: true,
     });
+
+    // Invalidate cache after deleting a question
+    notionCache.invalidateQuestions();
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
