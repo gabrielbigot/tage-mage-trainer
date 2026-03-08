@@ -28,7 +28,7 @@ async function notionPageToQuestion(page: any) {
   const isFavorite = favorisProp?.checkbox || false;
 
   // Extract added date
-  const addedDateProp = properties["Date d'ajouts"] || properties["Date d'ajout"] || properties["DateAjout"];
+  const addedDateProp = properties["Date de création"] || properties["Date d'ajouts"] || properties["Date d'ajout"] || properties["DateAjout"];
   const addedDate = addedDateProp?.date?.start || null;
 
   // Récupérer le contenu de la page
