@@ -32,6 +32,9 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
   const [timeRemaining, setTimeRemaining] = useState<number>(timePerQuestion);
   const sessionStartTime = useRef<number>(0);
   const timerInterval = useRef<NodeJS.Timeout | null>(null);
+  const isCompletingRef = useRef(false);
+  const answersRef = useRef<(number | null)[]>([]);
+  const questionTimesRef = useRef<number[]>([]);
 
   useEffect(() => {
     const initSession = async () => {
@@ -52,8 +55,12 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
       const sessionId = await storage.createSession(sessionQuestions);
       setSessionId(sessionId);
       setQuestions(sessionQuestions);
-      setAnswers(new Array(sessionQuestions.length).fill(null));
-      setQuestionTimes(new Array(sessionQuestions.length).fill(0));
+      const initialAnswers = new Array(sessionQuestions.length).fill(null);
+      const initialTimes = new Array(sessionQuestions.length).fill(0);
+      setAnswers(initialAnswers);
+      setQuestionTimes(initialTimes);
+      answersRef.current = initialAnswers;
+      questionTimesRef.current = initialTimes;
 
       sessionStartTime.current = Date.now();
       setQuestionStartTime(Date.now());
@@ -94,14 +101,15 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
 
     // Save current answer (even if null)
     saveQuestionTime();
-    const newAnswers = [...answers];
+    const newAnswers = [...answersRef.current];
     newAnswers[currentIndex] = selectedAnswer;
     setAnswers(newAnswers);
+    answersRef.current = newAnswers;
 
     // Auto advance to next question or complete
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setSelectedAnswer(answers[currentIndex + 1]);
+      setSelectedAnswer(answersRef.current[currentIndex + 1]);
       setShowAnswer(false);
       setQuestionStartTime(Date.now());
     } else {
@@ -112,9 +120,10 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
   const saveQuestionTime = () => {
     if (questionStartTime > 0) {
       const timeSpent = Math.floor((Date.now() - questionStartTime) / 1000);
-      const newTimes = [...questionTimes];
+      const newTimes = [...questionTimesRef.current];
       newTimes[currentIndex] = timeSpent;
       setQuestionTimes(newTimes);
+      questionTimesRef.current = newTimes;
     }
   };
 
@@ -136,9 +145,10 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
     }
 
     saveQuestionTime();
-    const newAnswers = [...answers];
+    const newAnswers = [...answersRef.current];
     newAnswers[currentIndex] = selectedAnswer;
     setAnswers(newAnswers);
+    answersRef.current = newAnswers;
 
     // In exam mode, auto-advance instead of showing answer
     if (timePerQuestion > 0) {
@@ -158,8 +168,8 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setSelectedAnswer(answers[currentIndex + 1]);
-      setShowAnswer(timePerQuestion === 0 && answers[currentIndex + 1] !== null);
+      setSelectedAnswer(answersRef.current[currentIndex + 1]);
+      setShowAnswer(timePerQuestion === 0 && answersRef.current[currentIndex + 1] !== null);
       setQuestionStartTime(Date.now());
     } else {
       completeSession();
@@ -170,21 +180,29 @@ export function TrainingSession({ onExit, mode = "practice", customQuestions, ti
     if (currentIndex > 0) {
       saveQuestionTime();
       setCurrentIndex(currentIndex - 1);
-      setSelectedAnswer(answers[currentIndex - 1]);
-      setShowAnswer(answers[currentIndex - 1] !== null);
+      setSelectedAnswer(answersRef.current[currentIndex - 1]);
+      setShowAnswer(answersRef.current[currentIndex - 1] !== null);
       setQuestionStartTime(Date.now());
     }
   };
 
   const completeSession = async () => {
+    // Prevent double completion
+    if (isCompletingRef.current) return;
+    isCompletingRef.current = true;
+
     const totalTime = Math.floor((Date.now() - sessionStartTime.current) / 1000);
+
+    // Use refs to get the latest values (avoid stale closure)
+    const currentAnswers = answersRef.current;
+    const currentTimes = questionTimesRef.current;
 
     const results: QuestionResult[] = questions.map((q, idx) => ({
       questionId: q.id,
       question: q,
-      userAnswer: answers[idx],
-      isCorrect: answers[idx] !== null && answers[idx] === q.correctAnswer,
-      timeSpent: questionTimes[idx] || 0,
+      userAnswer: currentAnswers[idx],
+      isCorrect: currentAnswers[idx] !== null && currentAnswers[idx] === q.correctAnswer,
+      timeSpent: currentTimes[idx] || 0,
     }));
 
     await storage.completeSession(sessionId, results, totalTime);
