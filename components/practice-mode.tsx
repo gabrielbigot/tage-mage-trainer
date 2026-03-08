@@ -260,6 +260,12 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
               </div>
             </div>
 
+            <DateFilter
+              availableDates={questions.map(q => q.addedDate).filter((d): d is string => !!d)}
+              value={dateFilter}
+              onChange={setDateFilter}
+            />
+
             {displayedTags.length > 0 && (
               <div className="space-y-2">
                 <Label>Tags {selectedCategory !== "all" && <span className="text-xs text-muted-foreground font-normal">({selectedCategory})</span>}</Label>
@@ -282,12 +288,6 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
                 )}
               </div>
             )}
-
-            <DateFilter
-              availableDates={questions.map(q => q.addedDate).filter((d): d is string => !!d)}
-              value={dateFilter}
-              onChange={setDateFilter}
-            />
 
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div className="space-y-0.5">

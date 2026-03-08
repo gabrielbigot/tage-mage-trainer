@@ -359,6 +359,12 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
                 </div>
               </div>
 
+              <DateFilter
+                availableDates={allQuestions.map(q => q.addedDate).filter((d): d is string => !!d)}
+                value={dateFilter}
+                onChange={setDateFilter}
+              />
+
               {displayedTags.length > 0 && (
                 <div className="space-y-2">
                   <Label>Tags {selectedCategory !== "all" && <span className="text-xs text-muted-foreground font-normal">({selectedCategory})</span>}</Label>
@@ -376,12 +382,6 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
                   </div>
                 </div>
               )}
-
-              <DateFilter
-                availableDates={allQuestions.map(q => q.addedDate).filter((d): d is string => !!d)}
-                value={dateFilter}
-                onChange={setDateFilter}
-              />
             </CardContent>
           </Card>
 
