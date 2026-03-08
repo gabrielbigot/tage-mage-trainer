@@ -12,7 +12,7 @@ interface CacheEntry<T> {
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 let questionsCache: CacheEntry<any[]> | null = null;
-let schemaCache: CacheEntry<{ categories: string[]; tags: string[] }> | null = null;
+let schemaCache: CacheEntry<{ categories: string[]; tags: string[]; datePropertyName?: string | null }> | null = null;
 
 export const notionCache = {
   getQuestions(): any[] | null {
@@ -26,14 +26,14 @@ export const notionCache = {
     questionsCache = { data, timestamp: Date.now() };
   },
 
-  getSchema(): { categories: string[]; tags: string[] } | null {
+  getSchema(): { categories: string[]; tags: string[]; datePropertyName?: string | null } | null {
     if (schemaCache && Date.now() - schemaCache.timestamp < CACHE_TTL_MS) {
       return schemaCache.data;
     }
     return null;
   },
 
-  setSchema(data: { categories: string[]; tags: string[] }): void {
+  setSchema(data: { categories: string[]; tags: string[]; datePropertyName?: string | null }): void {
     schemaCache = { data, timestamp: Date.now() };
   },
 

@@ -24,6 +24,10 @@ export async function GET() {
 
     const properties = database.properties as any;
 
+    // Log all property names and types for debugging
+    const propInfo = Object.entries(properties).map(([name, prop]: [string, any]) => `${name} (${prop.type})`);
+    console.log("[Schema] Database properties:", propInfo.join(", "));
+
     // Extract all categories from the "Catégorie" select property
     const categoryProp = properties["Catégorie"] || properties["Category"];
     const categories: string[] = categoryProp?.select?.options?.map((opt: any) => opt.name) || [];
@@ -32,7 +36,15 @@ export async function GET() {
     const tagsProp = properties["Tags"];
     const tags: string[] = tagsProp?.multi_select?.options?.map((opt: any) => opt.name) || [];
 
-    const result = { categories, tags };
+    // Find the date property name (for client-side reference)
+    const datePropertyName = Object.keys(properties).find(name => {
+      const prop = properties[name];
+      return (prop.type === "date" || prop.type === "created_time" || prop.type === "last_edited_time") &&
+        (name.toLowerCase().includes("date") || name.toLowerCase().includes("création") || name.toLowerCase().includes("ajout"));
+    });
+    console.log("[Schema] Date property found:", datePropertyName || "none");
+
+    const result = { categories, tags, datePropertyName: datePropertyName || null };
     notionCache.setSchema(result);
     console.log(`[Cache] Cached schema (${categories.length} categories, ${tags.length} tags)`);
 

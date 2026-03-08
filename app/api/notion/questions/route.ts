@@ -27,9 +27,22 @@ async function notionPageToQuestion(page: any) {
   const favorisProp = properties.Favoris || properties.Favorite;
   const isFavorite = favorisProp?.checkbox || false;
 
-  // Extract added date
+  // Extract added date - handle different Notion property types
   const addedDateProp = properties["Date de création"] || properties["Date d'ajouts"] || properties["Date d'ajout"] || properties["DateAjout"];
-  const addedDate = addedDateProp?.date?.start || null;
+  let addedDate: string | null = null;
+  if (addedDateProp) {
+    if (addedDateProp.type === "date" && addedDateProp.date?.start) {
+      addedDate = addedDateProp.date.start.substring(0, 10); // YYYY-MM-DD
+    } else if (addedDateProp.type === "created_time" && addedDateProp.created_time) {
+      addedDate = addedDateProp.created_time.substring(0, 10); // YYYY-MM-DD
+    } else if (addedDateProp.type === "last_edited_time" && addedDateProp.last_edited_time) {
+      addedDate = addedDateProp.last_edited_time.substring(0, 10); // YYYY-MM-DD
+    }
+  }
+  // Fallback: use page created_time if no date property found
+  if (!addedDate && page.created_time) {
+    addedDate = page.created_time.substring(0, 10);
+  }
 
   // Récupérer le contenu de la page
   const blocksResponse = await notion.blocks.children.list({
