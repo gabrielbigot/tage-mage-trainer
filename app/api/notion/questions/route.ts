@@ -27,6 +27,10 @@ async function notionPageToQuestion(page: any) {
   const favorisProp = properties.Favoris || properties.Favorite;
   const isFavorite = favorisProp?.checkbox || false;
 
+  // Extract added date
+  const addedDateProp = properties["Date d'ajouts"] || properties["Date d'ajout"] || properties["DateAjout"];
+  const addedDate = addedDateProp?.date?.start || null;
+
   // Récupérer le contenu de la page
   const blocksResponse = await notion.blocks.children.list({
     block_id: page.id,
@@ -280,6 +284,7 @@ async function notionPageToQuestion(page: any) {
     correctAnswer,
     explanation: explanation.trim(),
     createdAt: new Date(page.created_time).getTime(),
+    addedDate: addedDate || undefined,
     difficulty,
     tags: tags.length > 0 ? tags : undefined,
     isFavorite,

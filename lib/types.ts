@@ -52,6 +52,7 @@ export interface Question {
   correctAnswer: number;
   explanation?: string;
   createdAt: number;
+  addedDate?: string; // YYYY-MM-DD from Notion "Date d'ajouts" property
   // New fields for improvements
   difficulty?: DifficultyLevel;
   tags?: string[];

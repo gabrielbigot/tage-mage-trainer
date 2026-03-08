@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Question } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { Clock, Play, ArrowLeft, Filter } from "lucide-react";
+import { DateFilter, DateFilterValue, matchesDateFilter } from "@/components/date-filter";
 
 interface ExamModeProps {
   onStartExam: (questions: Question[], timePerQuestion: number) => void;
@@ -23,6 +24,7 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
   const [selectedType, setSelectedType] = useState<string>("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [allSchemaTags, setAllSchemaTags] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ mode: "all" });
 
   useEffect(() => {
     loadQuestions();
@@ -80,6 +82,11 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
       });
     }
 
+    // Filter by date
+    if (dateFilter.mode !== "all") {
+      filtered = filtered.filter(q => matchesDateFilter(q.addedDate, dateFilter));
+    }
+
     // Shuffle and select
     const shuffled = [...filtered].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
@@ -123,6 +130,7 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
     if (selectedDifficulty !== "all") filtered = filtered.filter(q => q.difficulty === selectedDifficulty);
     if (selectedType !== "all") filtered = filtered.filter(q => (q.questionType || "standard") === selectedType);
     if (selectedTags.length > 0) filtered = filtered.filter(q => selectedTags.some(tag => (q.tags || []).includes(tag)));
+    if (dateFilter.mode !== "all") filtered = filtered.filter(q => matchesDateFilter(q.addedDate, dateFilter));
     return filtered.length;
   };
   const availableCount = getFilteredCount();
@@ -319,6 +327,12 @@ export function ExamMode({ onStartExam, onBack }: ExamModeProps) {
                 )}
               </div>
             )}
+
+            <DateFilter
+              availableDates={questions.map(q => q.addedDate).filter((d): d is string => !!d)}
+              value={dateFilter}
+              onChange={setDateFilter}
+            />
           </CardContent>
         </Card>
 

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { storage } from "@/lib/storage";
 import { Question } from "@/lib/types";
 import { RefreshCw, AlertCircle, Filter, ArrowLeft, Play, TrendingDown } from "lucide-react";
+import { DateFilter, DateFilterValue, matchesDateFilter } from "@/components/date-filter";
 
 interface ReviewModeProps {
   onStartReview: (questions: Question[]) => void;
@@ -24,6 +25,7 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
   const [errorRateFilter, setErrorRateFilter] = useState<string>("all"); // all, never-correct, high-error (>50%), any-error
   const [minErrorRate, setMinErrorRate] = useState(0); // 0-100
   const [allSchemaTags, setAllSchemaTags] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ mode: "all" });
 
   useEffect(() => {
     loadQuestions();
@@ -123,6 +125,11 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
         const qTags = q.tags || [];
         return selectedTags.some(tag => qTags.includes(tag));
       });
+    }
+
+    // Filter by date
+    if (dateFilter.mode !== "all") {
+      filtered = filtered.filter(q => matchesDateFilter(q.addedDate, dateFilter));
     }
 
     // Sort by error rate descending (worst first)
@@ -369,6 +376,12 @@ export function ReviewMode({ onStartReview, onBack }: ReviewModeProps) {
                   </div>
                 </div>
               )}
+
+              <DateFilter
+                availableDates={allQuestions.map(q => q.addedDate).filter((d): d is string => !!d)}
+                value={dateFilter}
+                onChange={setDateFilter}
+              />
             </CardContent>
           </Card>
 

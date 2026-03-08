@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Question } from "@/lib/types";
 import { storage } from "@/lib/storage";
 import { Brain, Play, ArrowLeft, Filter } from "lucide-react";
+import { DateFilter, DateFilterValue, matchesDateFilter } from "@/components/date-filter";
 
 interface PracticeModeProps {
   onStartPractice: (questions: Question[]) => void;
@@ -24,6 +25,7 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const [allSchemaTags, setAllSchemaTags] = useState<string[]>([]);
+  const [dateFilter, setDateFilter] = useState<DateFilterValue>({ mode: "all" });
 
   useEffect(() => {
     loadQuestions();
@@ -81,6 +83,11 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
       filtered = filtered.filter(q => q.isFavorite === true);
     }
 
+    // Filter by date
+    if (dateFilter.mode !== "all") {
+      filtered = filtered.filter(q => matchesDateFilter(q.addedDate, dateFilter));
+    }
+
     // Shuffle and select
     const shuffled = [...filtered].sort(() => Math.random() - 0.5);
     const selected = shuffled.slice(0, Math.min(questionCount, shuffled.length));
@@ -136,6 +143,7 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
     if (selectedType !== "all") filtered = filtered.filter(q => (q.questionType || "standard") === selectedType);
     if (selectedTags.length > 0) filtered = filtered.filter(q => selectedTags.some(tag => (q.tags || []).includes(tag)));
     if (favoritesOnly) filtered = filtered.filter(q => q.isFavorite === true);
+    if (dateFilter.mode !== "all") filtered = filtered.filter(q => matchesDateFilter(q.addedDate, dateFilter));
     return filtered.length;
   };
 
@@ -274,6 +282,12 @@ export function PracticeMode({ onStartPractice, onBack }: PracticeModeProps) {
                 )}
               </div>
             )}
+
+            <DateFilter
+              availableDates={questions.map(q => q.addedDate).filter((d): d is string => !!d)}
+              value={dateFilter}
+              onChange={setDateFilter}
+            />
 
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div className="space-y-0.5">
