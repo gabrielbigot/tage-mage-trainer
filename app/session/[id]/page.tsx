@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { storage } from "@/lib/storage";
 import { TrainingSession, Question } from "@/lib/types";
-import { ArrowLeft, Clock, CheckCircle2, XCircle, Trophy, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle2, XCircle, Trophy, Calendar, Loader2, BookOpen } from "lucide-react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { DoubleSeriesDisplay } from "@/components/double-series-display";
 import { ConditionsMinimalesDisplay } from "@/components/conditions-minimales-display";
@@ -350,6 +351,16 @@ export default function SessionDetailPage() {
                       </p>
                     </div>
                   )}
+
+                  {/* Link to full correction */}
+                  <div className="mt-4 pt-4 border-t border-border/50">
+                    <Link href={`/correction/${item.question.id}`} target="_blank">
+                      <Button variant="ghost" size="sm" className="w-full hover:bg-primary/5">
+                        <BookOpen className="h-4 w-4 mr-2" />
+                        Voir la correction détaillée
+                      </Button>
+                    </Link>
+                  </div>
                 </CardContent>
               </Card>
             </motion.div>
